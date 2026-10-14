@@ -424,7 +424,7 @@
         }
 
         function generateSCAD(w, l, h, wall, cx, cy, text, font, gap) {
-    currentScadCode = `
+            currentScadCode = `
 // Print-in-Place Hinged Box with Snap-Fit Latch
 // Auto-generated
 
@@ -480,31 +480,40 @@ module lid_box() {
     armW = width / 4;
     armT = wall;
 
-    union() {
-        // Main hollowed lid body
-        difference() {
+    // Main Lid Body with Inset Cutout
+    difference() {
+        union() {
             translate([-width/2, -length/2, 0]) cube([width, length, height]);
             
-            // Hollow out lid interior
-            translate([-width/2 + wall, -length/2 + wall, wall])
-            cube([width - wall*2, length - wall*2, height + 1]);
+            // Full Latch Structure
+            translate([0, length/2, 0]) {
+                translate([-armW/2, 0, 0]) cube([armW, armT, height]);
+                translate([-armW/2, 0, height]) cube([wall, armT, wall*2]);
+                translate([armW/2 - wall, 0, height]) cube([wall, armT, wall*2]);
+                translate([-armW/2, 0, height + wall*2]) cube([armW, armT, wall]);
+            }
         }
-
-        // Latch Structure
-        translate([0, length/2, 0]) {
-            translate([-armW/2, 0, 0]) cube([armW, armT, height]);
-            translate([-armW/2, 0, height]) cube([wall, armT, wall*2]);
-            translate([armW/2 - wall, 0, height]) cube([wall, armT, wall*2]);
-            translate([-armW/2, 0, height + wall*2]) cube([armW, armT, wall]);
-        }
-
-        // Embossed Text on Top/Outer Face (Flush with lid face)
+       
+        // Hollow out lid interior
+        translate([-width/2 + wall, -length/2 + wall, wall])
+        cube([width - wall*2, length - wall*2, height + 1]);
+       
+        // Cutout 0.6mm into bottom surface for flush inset text
         if (box_text != "") {
-            translate([0, 0, 0]) // Positioned on top outer surface
-            rotate([0, 180, 0])  // Oriented facing latch when closed
-            linear_extrude(0.6)  // Height of emboss (e.g. 0.6mm / 3 layers at 0.2mm layer height)
+            translate([0, 0, -0.01])
+            rotate([0, 0, 180])
+            linear_extrude(0.61)
             text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
         }
+    }
+
+    // Embedded Inset Text (Fills cutout perfectly for a flush, flat face)
+    if (box_text != "") {
+        color("black")
+        translate([0, 0, 0])
+        rotate([0, 0, 180])
+        linear_extrude(0.6)
+        text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
     }
 }
 
@@ -544,7 +553,7 @@ module build_hinges() {
 
 main();
 `;
-}
+        }
 
         function downloadSCAD() {
             const blob = new Blob([currentScadCode], { type: "text/plain" });
@@ -581,4 +590,3 @@ main();
     </script>
 </body>
 </html>
-
