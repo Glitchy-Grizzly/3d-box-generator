@@ -424,7 +424,7 @@
         }
 
         function generateSCAD(w, l, h, wall, cx, cy, text, font, gap) {
-            currentScadCode = `
+    currentScadCode = `
 // Print-in-Place Hinged Box with Snap-Fit Latch
 // Auto-generated
 
@@ -466,12 +466,9 @@ module base_box() {
                     cube([comp_w, comp_l, height]);
                 }
             }
-           
-            translate([-width/2-1, length/2 - wall, height - wall])
-            cube([width+2, wall+1, wall+1]);
         }
        
-        // Ramp catch wedge positioned on the outer front wall
+        // Ramp catch wedge positioned on outer front wall
         translate([-width/8, -length/2 - wall, height - wall*2])
         rotate([0, 90, 0])
         linear_extrude(width/4)
@@ -480,28 +477,37 @@ module base_box() {
 }
 
 module lid_box() {
+    armW = width / 4;
+    armT = wall;
+
     difference() {
         union() {
+            // Main Lid Body
             translate([-width/2, -length/2, 0]) cube([width, length, height]);
            
-            translate([-width/8, length/2, 0])
-            cube([width/4, wall, height + wall*3]);
+            // Complete Latch Structure (Arm + Struts + Snap Cap)
+            translate([0, length/2, 0]) {
+                // Lower arm extending along outer front face
+                translate([-armW/2, 0, 0]) cube([armW, armT, height]);
+                
+                // Left & Right vertical struts
+                translate([-armW/2, 0, height]) cube([wall, armT, wall*2]);
+                translate([armW/2 - wall, 0, height]) cube([wall, armT, wall*2]);
+                
+                // Snap-fit catch cap
+                translate([-armW/2, 0, height + wall*2]) cube([armW, armT, wall]);
+            }
         }
        
+        // Hollow out lid interior
         translate([-width/2 + wall, -length/2 + wall, wall])
-        cube([width - wall*2, length - wall*2, height]);
+        cube([width - wall*2, length - wall*2, height + 1]);
        
-        translate([-width/2-1, -length/2 - 1, height - wall])
-        cube([width+2, wall+1, wall+1]);
-       
-        translate([-width/8 - 1, length/2 - 0.5, height])
-        cube([width/4 + 2, wall + 1, wall*2 + tol]);
-       
-        // Text Deboss oriented towards the latch side when closed
+        // Text Deboss on top face of lid
         if (box_text != "") {
             translate([0, 0, -0.1])
-            rotate([0, 180, 0])
-            linear_extrude(1)
+            rotate([0, 0, 180])
+            linear_extrude(wall * 0.6)
             text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
         }
     }
@@ -543,7 +549,7 @@ module build_hinges() {
 
 main();
 `;
-        }
+}
 
         function downloadSCAD() {
             const blob = new Blob([currentScadCode], { type: "text/plain" });
@@ -580,3 +586,4 @@ main();
     </script>
 </body>
 </html>
+
