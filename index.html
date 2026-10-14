@@ -93,19 +93,6 @@
         button.etsy-btn:hover {
             background-color: #ff7d3b;
         }
-        #scadOutput {
-            width: 100%;
-            height: 150px;
-            margin-top: 15px;
-            background: var(--bg-color);
-            color: #00ff00;
-            border: 1px solid var(--accent);
-            padding: 10px;
-            font-family: monospace;
-            font-size: 0.8rem;
-            box-sizing: border-box;
-            resize: vertical;
-        }
     </style>
     <!-- Three.js for 3D Preview -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -156,9 +143,6 @@
 
         <button onclick="downloadSCAD()">Download OpenSCAD File</button>
         <button class="etsy-btn" onclick="saveBoxAndRedirect()">Order Custom Box on Etsy</button>
-       
-        <label style="margin-top:20px;">OpenSCAD Code:</label>
-        <textarea id="scadOutput" readonly></textarea>
     </div>
 
     <div id="viewer"></div>
@@ -192,7 +176,7 @@
                 compY: parseInt(document.getElementById('compY').value),
                 customText: document.getElementById('customText').value,
                 font: document.getElementById('fontSelect').value,
-                scadCode: document.getElementById('scadOutput').value,
+                scadCode: currentScadCode,
                 createdAt: new Date().toISOString()
             };
 
@@ -218,6 +202,9 @@
     </script>
 
     <script>
+        // Store current generated SCAD string internally
+        let currentScadCode = "";
+
         // --- 3D Viewer Setup ---
         const container = document.getElementById('viewer');
         const scene = new THREE.Scene();
@@ -437,7 +424,7 @@
         }
 
         function generateSCAD(w, l, h, wall, cx, cy, text, font, gap) {
-            const scad = `
+            currentScadCode = `
 // Print-in-Place Hinged Box with Snap-Fit Latch
 // Auto-generated
 
@@ -484,13 +471,14 @@ module base_box() {
             cube([width+2, wall+1, wall+1]);
         }
        
-        // Proper 45-degree printable ramp catch wedge
-        translate([-width/8, -length/2, height - wall*2])
+        // Ramp catch wedge positioned on the outer front wall
+        translate([-width/8, -length/2 - wall*1.5, height - wall*2])
         rotate([0, 90, 0])
         linear_extrude(width/4)
         polygon([[0,0], [wall*1.5, wall*1.5], [0, wall*1.5]]);
     }
 }
+
 
 module lid_box() {
     difference() {
@@ -556,12 +544,10 @@ module build_hinges() {
 
 main();
 `;
-            document.getElementById('scadOutput').value = scad;
         }
 
         function downloadSCAD() {
-            const scadText = document.getElementById('scadOutput').value;
-            const blob = new Blob([scadText], { type: "text/plain" });
+            const blob = new Blob([currentScadCode], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -595,3 +581,4 @@ main();
     </script>
 </body>
 </html>
+
