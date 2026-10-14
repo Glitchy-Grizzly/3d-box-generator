@@ -321,7 +321,7 @@
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
             baseGroup.position.set(0, -length/2 - gap/2, 0);
            
-            // Printable ramp latch wedge on base
+            // Printable ramp latch wedge on outer base wall
             const wedgeShape = new THREE.Shape();
             wedgeShape.moveTo(0, 0);
             wedgeShape.lineTo(wall * 1.5, wall * 1.5);
@@ -333,7 +333,7 @@
             const wedge = new THREE.Mesh(wedgeGeo, material);
             wedge.rotation.x = Math.PI / 2;
             wedge.rotation.y = Math.PI / 2;
-            wedge.position.set(-width/8, -length/2 + wall, height - wall * 2);
+            wedge.position.set(-width/8, -length/2 - wall/2, height - wall * 2);
             baseGroup.add(wedge);
            
             boxGroup.add(baseGroup);
@@ -472,13 +472,12 @@ module base_box() {
         }
        
         // Ramp catch wedge positioned on the outer front wall
-        translate([-width/8, -length/2 - wall*1.5, height - wall*2])
+        translate([-width/8, -length/2 - wall, height - wall*2])
         rotate([0, 90, 0])
         linear_extrude(width/4)
         polygon([[0,0], [wall*1.5, wall*1.5], [0, wall*1.5]]);
     }
 }
-
 
 module lid_box() {
     difference() {
@@ -581,4 +580,3 @@ main();
     </script>
 </body>
 </html>
-
