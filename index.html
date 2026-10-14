@@ -127,6 +127,42 @@
             <label>Compartments Y <span class="value-display" id="valCompY">1</span></label>
             <input type="range" id="compY" min="1" max="5" value="1">
         </div>
+
+        <!-- Color Palette Options (Official Bambu Lab PLA Colors) -->
+        <div class="control-group">
+            <label for="boxColorSelect">Box Color (Bambu PLA)</label>
+            <select id="boxColorSelect">
+                <option value="#C12E1F">Red</option>
+                <option value="#000000">Black</option>
+                <option value="#FFFFFF">White (Jade White)</option>
+                <option value="#F4EE2A">Yellow</option>
+                <option value="#0A2989">Blue</option>
+                <option value="#3F8E43">Dark Green (Mistletoe)</option>
+                <option value="#8E9089">Gray</option>
+                <option value="#6F5034">Cocoa Brown</option>
+                <option value="#E4BD68">Gold</option>
+                <option value="#5E43B7">Purple</option>
+                <option value="#F5547C" selected>Hot Pink</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="textColorSelect">Text & Inlay Color (Bambu PLA)</label>
+            <select id="textColorSelect">
+                <option value="#000000" selected>Black</option>
+                <option value="#FFFFFF">White (Jade White)</option>
+                <option value="#F4EE2A">Yellow</option>
+                <option value="#C12E1F">Red</option>
+                <option value="#0A2989">Blue</option>
+                <option value="#3F8E43">Dark Green (Mistletoe)</option>
+                <option value="#8E9089">Gray</option>
+                <option value="#6F5034">Cocoa Brown</option>
+                <option value="#E4BD68">Gold</option>
+                <option value="#5E43B7">Purple</option>
+                <option value="#F5547C">Hot Pink</option>
+            </select>
+        </div>
+
         <div class="control-group">
             <label>Custom Text</label>
             <input type="text" id="customText" value="MY GAME" placeholder="Top Lid Text">
@@ -174,6 +210,8 @@
                 wall: parseFloat(document.getElementById('wall').value),
                 compX: parseInt(document.getElementById('compX').value),
                 compY: parseInt(document.getElementById('compY').value),
+                boxColor: document.getElementById('boxColorSelect').value,
+                textColor: document.getElementById('textColorSelect').value,
                 customText: document.getElementById('customText').value,
                 font: document.getElementById('fontSelect').value,
                 scadCode: currentScadCode,
@@ -293,6 +331,8 @@
             const wall = parseFloat(document.getElementById('wall').value);
             const compX = parseInt(document.getElementById('compX').value);
             const compY = parseInt(document.getElementById('compY').value);
+            const boxColorHex = document.getElementById('boxColorSelect').value;
+            const textColorHex = document.getElementById('textColorSelect').value;
             const customText = document.getElementById('customText').value;
             const font = document.getElementById('fontSelect').value;
 
@@ -309,7 +349,7 @@
             boxGroup = new THREE.Group();
 
             const material = new THREE.MeshStandardMaterial({
-                color: 0xe94560,
+                color: new THREE.Color(boxColorHex),
                 roughness: 0.4,
                 metalness: 0.1
             });
@@ -394,7 +434,7 @@
                
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.font = `bold 120px "${font}"`;
-                ctx.fillStyle = '#111111';
+                ctx.fillStyle = textColorHex;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                
@@ -409,7 +449,7 @@
                
                 textMesh.position.set(0, length/2 + gap/2, -0.01);
                 textMesh.rotation.x = Math.PI;
-                textMesh.rotation.z = 0; // Oriented correctly facing the latch side
+                textMesh.rotation.z = 0; // Oriented facing latch side
                
                 boxGroup.add(textMesh);
             }
@@ -420,10 +460,10 @@
             scene.add(boxGroup);
 
             // Update OpenSCAD logic
-            generateSCAD(width, length, height, wall, compX, compY, customText, font, gap);
+            generateSCAD(width, length, height, wall, compX, compY, boxColorHex, textColorHex, customText, font, gap);
         }
 
-        function generateSCAD(w, l, h, wall, cx, cy, text, font, gap) {
+        function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
             currentScadCode = `
 // Print-in-Place Hinged Box with Snap-Fit Latch
 // Auto-generated
@@ -438,14 +478,29 @@ gap = ${gap}; // Print-in-place separation gap
 tol = 0.3; // Printer tolerance
 $fn = 60;
 
+// Color Hex Codes (Bambu Lab PLA)
+box_color = "${boxHex}";
+text_color = "${textHex}";
+
 // Text Parameters
 box_text = "${text}";
 font_style = "${font}:style=Bold";
 
 module main() {
-    translate([0, -length/2 - gap/2, 0]) base_box();
-    translate([0, length/2 + gap/2, 0]) lid_box();
-    build_hinges();
+    color(box_color) {
+        translate([0, -length/2 - gap/2, 0]) base_box();
+        translate([0, length/2 + gap/2, 0]) lid_box();
+        build_hinges();
+    }
+   
+    // Flush embedded text in contrasting filament color
+    if (box_text != "") {
+        color(text_color)
+        translate([0, length/2 + gap/2, 0])
+        rotate([0, 0, 180])
+        linear_extrude(0.6)
+        text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
+    }
 }
 
 module base_box() {
@@ -468,7 +523,7 @@ module base_box() {
             }
         }
        
-        // Ramp catch wedge positioned on outer front wall
+        // Ramp catch wedge on outer front wall
         translate([-width/8, -length/2 - wall, height - wall*2])
         rotate([0, 90, 0])
         linear_extrude(width/4)
@@ -480,11 +535,10 @@ module lid_box() {
     armW = width / 4;
     armT = wall;
 
-    // Main Lid Body with Inset Cutout
     difference() {
         union() {
             translate([-width/2, -length/2, 0]) cube([width, length, height]);
-            
+           
             // Full Latch Structure
             translate([0, length/2, 0]) {
                 translate([-armW/2, 0, 0]) cube([armW, armT, height]);
@@ -498,22 +552,13 @@ module lid_box() {
         translate([-width/2 + wall, -length/2 + wall, wall])
         cube([width - wall*2, length - wall*2, height + 1]);
        
-        // Cutout 0.6mm into bottom surface for flush inset text
+        // Cutout 0.61mm for flush text inlay
         if (box_text != "") {
             translate([0, 0, -0.01])
             rotate([0, 0, 180])
             linear_extrude(0.61)
             text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
         }
-    }
-
-    // Embedded Inset Text (Fills cutout perfectly for a flush, flat face)
-    if (box_text != "") {
-        color("black")
-        translate([0, 0, 0])
-        rotate([0, 0, 180])
-        linear_extrude(0.6)
-        text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
     }
 }
 
