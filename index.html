@@ -273,17 +273,14 @@
         function create2DPoints(shapeType, w, l, isClockwise = false) {
             let pts = [];
             if (shapeType === 'heart') {
-                const sx = w / 100;
-                const sy = l / 100;
-                pts = [
-                    new THREE.Vector2(-w/2, l/2),
-                    new THREE.Vector2(w/2, l/2),
-                    new THREE.Vector2(50 * sx, 20 * sy),
-                    new THREE.Vector2(40 * sx, -10 * sy),
-                    new THREE.Vector2(0, -l/2),
-                    new THREE.Vector2(-40 * sx, -10 * sy),
-                    new THREE.Vector2(-50 * sx, 20 * sy)
-                ];
+                const num = 40;
+                for (let i = 0; i < num; i++) {
+                    const t = (i / num) * Math.PI * 2;
+                    // Classic smooth mathematical Heart curve
+                    const x = (w / 32) * 16 * Math.pow(Math.sin(t), 3);
+                    const y = (l / 32) * (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+                    pts.push(new THREE.Vector2(x, y));
+                }
             } else if (shapeType === 'hexagon') {
                 const r = w / 2;
                 for (let i = 0; i < 6; i++) {
@@ -350,16 +347,14 @@
             const customText = document.getElementById('customText').value;
             const font = document.getElementById('fontSelect').value;
 
-            // Rectangle vs Non-Rectangle Control Visibility
+            // Keep all sliders visible across all shapes
             if (shapeType === 'rectangle') {
                 document.getElementById('lengthGroup').style.display = 'block';
-                document.getElementById('compXGroup').style.display = 'block';
-                document.getElementById('compYGroup').style.display = 'block';
             } else {
                 document.getElementById('lengthGroup').style.display = 'none';
-                document.getElementById('compXGroup').style.display = 'none';
-                document.getElementById('compYGroup').style.display = 'none';
             }
+            document.getElementById('compXGroup').style.display = 'block';
+            document.getElementById('compYGroup').style.display = 'block';
 
             document.getElementById('valWidth').innerText = width;
             document.getElementById('valLength').innerText = length;
@@ -383,6 +378,17 @@
             const baseHalf = createHollowMesh(shapeType, width, length, height, wall, material);
             baseHalf.position.set(0, -length / 2 - gap / 2, 0);
 
+            // Mounting pads for hinge (rear) & catch wedge (front) on non-rectangular shapes
+            if (shapeType !== 'rectangle') {
+                const rearPad = new THREE.Mesh(new THREE.BoxGeometry(width * 0.7, wall, height), material);
+                rearPad.position.set(0, length / 2 - wall / 2, height / 2);
+                baseHalf.add(rearPad);
+
+                const frontPad = new THREE.Mesh(new THREE.BoxGeometry(width * 0.5, wall, height), material);
+                frontPad.position.set(0, -length / 2 + wall / 2, height / 2);
+                baseHalf.add(frontPad);
+            }
+
             // Catch Wedge
             const wedgeShape = new THREE.Shape();
             wedgeShape.moveTo(0, 0);
@@ -396,23 +402,21 @@
             wedge.position.set(-width / 8, -length / 2 - wall / 2, height - wall * 2);
             baseHalf.add(wedge);
 
-            // Dividers only rendered for Rectangles to prevent unclipped wall overflows
-            if (shapeType === 'rectangle') {
-                if (compX > 1) {
-                    const cw = (width - wall * (compX + 1)) / compX;
-                    for (let i = 1; i < compX; i++) {
-                        const div = new THREE.Mesh(new THREE.BoxGeometry(wall, length - wall * 2, height - wall), material);
-                        div.position.set(-width / 2 + wall + i * cw + (i - 0.5) * wall, 0, (height + wall) / 2);
-                        baseHalf.add(div);
-                    }
+            // Compartment Dividers bounded inside
+            if (compX > 1) {
+                const cw = (width - wall * (compX + 1)) / compX;
+                for (let i = 1; i < compX; i++) {
+                    const div = new THREE.Mesh(new THREE.BoxGeometry(wall, length * 0.7, height - wall), material);
+                    div.position.set(-width / 2 + wall + i * cw + (i - 0.5) * wall, 0, (height + wall) / 2);
+                    baseHalf.add(div);
                 }
-                if (compY > 1) {
-                    const cl = (length - wall * (compY + 1)) / compY;
-                    for (let i = 1; i < compY; i++) {
-                        const div = new THREE.Mesh(new THREE.BoxGeometry(width - wall * 2, wall, height - wall), material);
-                        div.position.set(0, -length / 2 + wall + i * cl + (i - 0.5) * wall, (height + wall) / 2);
-                        baseHalf.add(div);
-                    }
+            }
+            if (compY > 1) {
+                const cl = (length - wall * (compY + 1)) / compY;
+                for (let i = 1; i < compY; i++) {
+                    const div = new THREE.Mesh(new THREE.BoxGeometry(width * 0.7, wall, height - wall), material);
+                    div.position.set(0, -length / 2 + wall + i * cl + (i - 0.5) * wall, (height + wall) / 2);
+                    baseHalf.add(div);
                 }
             }
             boxGroup.add(baseHalf);
@@ -420,6 +424,16 @@
             // --- Lid Box ---
             const lidHalf = createHollowMesh(shapeType, width, length, height, wall, material);
             lidHalf.position.set(0, length / 2 + gap / 2, 0);
+
+            if (shapeType !== 'rectangle') {
+                const lidRearPad = new THREE.Mesh(new THREE.BoxGeometry(width * 0.7, wall, height), material);
+                lidRearPad.position.set(0, -length / 2 + wall / 2, height / 2);
+                lidHalf.add(lidRearPad);
+
+                const lidFrontPad = new THREE.Mesh(new THREE.BoxGeometry(width * 0.5, wall, height), material);
+                lidFrontPad.position.set(0, length / 2 - wall / 2, height / 2);
+                lidHalf.add(lidFrontPad);
+            }
 
             // Cantilever Snap Latch
             const latchGroup = new THREE.Group();
@@ -534,13 +548,9 @@ module main() {
 
 module base_shape_2d(w, l) {
     if (shape == "heart") {
-        sx = w/100;
-        sy = l/100;
-        polygon([
-            [-w/2, l/2], [w/2, l/2],
-            [50*sx, 20*sy], [40*sx, -10*sy], [0, -l/2],
-            [-40*sx, -10*sy], [-50*sx, 20*sy]
-        ]);
+        // Smooth parametric heart curve
+        scale([w/32, l/32, 1])
+        polygon([for (t = [0:10:350]) [(16*sin(t)^3), (13*cos(t) - 5*cos(2*t) - 2*cos(3*t) - cos(4*t))]]);
     } else if (shape == "hexagon") {
         rotate([0, 0, 30]) circle(r=w/2, $fn=6);
     } else if (shape == "circle") {
@@ -555,24 +565,37 @@ module base_shape_2d(w, l) {
 module base_box() {
     union() {
         difference() {
-            linear_extrude(height) base_shape_2d(width, length);
+            union() {
+                linear_extrude(height) base_shape_2d(width, length);
+                if (shape != "rectangle") {
+                    // Rear & Front flat mounting pads to lock hinge & latch
+                    translate([-width*0.35, length/2 - wall, 0]) cube([width*0.7, wall, height]);
+                    translate([-width*0.25, -length/2, 0]) cube([width*0.5, wall, height]);
+                }
+            }
             translate([0, 0, wall]) linear_extrude(height) offset(r=-wall) base_shape_2d(width, length);
         }
         
-        if (shape == "rectangle" && (compX > 1 || compY > 1)) {
-            comp_w = (width - wall * (compX + 1)) / compX;
-            comp_l = (length - wall * (compY + 1)) / compY;
-            
-            if (compX > 1) {
-                for(i=[1:compX-1]) {
-                    translate([-width/2 + wall + i*(comp_w+wall) - wall/2, -length/2 + wall, wall])
-                    cube([wall, length - wall*2, height - wall]);
-                }
-            }
-            if (compY > 1) {
-                for(j=[1:compY-1]) {
-                    translate([-width/2 + wall, -length/2 + wall + j*(comp_l+wall) - wall/2, wall])
-                    cube([width - wall*2, wall, height - wall]);
+        // OpenSCAD 2D Intersection clips grid dividers cleanly inside all shapes
+        if (compX > 1 || compY > 1) {
+            intersection() {
+                translate([0, 0, wall]) linear_extrude(height) offset(r=-wall) base_shape_2d(width, length);
+                union() {
+                    comp_w = (width - wall * (compX + 1)) / compX;
+                    comp_l = (length - wall * (compY + 1)) / compY;
+                    
+                    if (compX > 1) {
+                        for(i=[1:compX-1]) {
+                            translate([-width/2 + wall + i*(comp_w+wall) - wall/2, -length/2, wall])
+                            cube([wall, length, height]);
+                        }
+                    }
+                    if (compY > 1) {
+                        for(j=[1:compY-1]) {
+                            translate([-width/2, -length/2 + wall + j*(comp_l+wall) - wall/2, wall])
+                            cube([width, wall, height]);
+                        }
+                    }
                 }
             }
         }
@@ -592,6 +615,10 @@ module lid_box() {
     difference() {
         union() {
             linear_extrude(height) base_shape_2d(width, length);
+            if (shape != "rectangle") {
+                translate([-width*0.35, -length/2, 0]) cube([width*0.7, wall, height]);
+                translate([-width*0.25, length/2 - wall, 0]) cube([width*0.5, wall, height]);
+            }
             
             // Cantilever Snap Latch Structure
             translate([0, length/2, 0]) {
