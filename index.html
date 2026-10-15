@@ -94,7 +94,6 @@
             background-color: #ff7d3b;
         }
     </style>
-    <!-- Three.js for 3D Preview -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
@@ -127,7 +126,6 @@
             <input type="range" id="compY" min="1" max="5" value="1">
         </div>
 
-        <!-- Color Palette Options (Official Bambu Lab PLA Colors) -->
         <div class="control-group">
             <label for="boxColorSelect">Box Color (Bambu PLA)</label>
             <select id="boxColorSelect">
@@ -182,12 +180,10 @@
 
     <div id="viewer"></div>
 
-    <!-- Firebase SDK Setup -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ⚠️ REPLACE THIS OBJECT WITH YOUR CONFIG FROM FIREBASE CONSOLE PROJECT SETTINGS
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -234,7 +230,6 @@
     <script>
         let currentScadCode = "";
 
-        // --- 3D Viewer Setup ---
         const container = document.getElementById('viewer');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a2e);
@@ -251,7 +246,6 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
 
-        // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -259,7 +253,6 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // Grid helper
         const gridHelper = new THREE.GridHelper(300, 30, 0x0f3460, 0x222222);
         scene.add(gridHelper);
 
@@ -269,12 +262,10 @@
         function buildBoxHalf(w, l, h, t, cx, cy, mat) {
             const group = new THREE.Group();
            
-            // Floor
             const floor = new THREE.Mesh(new THREE.BoxGeometry(w, l, t), mat);
             floor.position.set(0, 0, t/2);
             group.add(floor);
 
-            // Outer Walls
             const left = new THREE.Mesh(new THREE.BoxGeometry(t, l, h), mat);
             left.position.set(-w/2 + t/2, 0, h/2);
             group.add(left);
@@ -291,7 +282,6 @@
             back.position.set(0, l/2 - t/2, h/2);
             group.add(back);
 
-            // Compartment Dividers
             if (cx > 1) {
                 const cw = (w - t * (cx + 1)) / cx;
                 for (let i = 1; i < cx; i++) {
@@ -342,11 +332,10 @@
 
             const gap = 0.5;
 
-            // --- Base Box Half ---
+            // Base Box Half
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
             baseGroup.position.set(0, -length/2 - gap/2, 0);
            
-            // Catch Wedge
             const wedgeShape = new THREE.Shape();
             wedgeShape.moveTo(0, 0);
             wedgeShape.lineTo(wall * 1.5, wall * 1.5);
@@ -362,11 +351,10 @@
            
             boxGroup.add(baseGroup);
 
-            // --- Lid Box Half ---
+            // Lid Box Half
             const lidGroup = buildBoxHalf(width, length, height, wall, 1, 1, material);
             lidGroup.position.set(0, length/2 + gap/2, 0);
            
-            // Cantilever Snap Latch
             const latchGroup = new THREE.Group();
             const armW = width / 4;
             const armT = wall;
@@ -391,7 +379,7 @@
 
             boxGroup.add(lidGroup);
 
-            // --- Print-in-Place Hinge Knuckles ---
+            // Hinge Knuckles in Three.js Preview
             const hingeRadius = wall;
             const knuckle_w = width / 5;
            
@@ -402,14 +390,14 @@
                 kMesh.position.set(i * knuckle_w, 0, height);
                 boxGroup.add(kMesh);
                
-                const anchorGeo = new THREE.BoxGeometry(knuckle_w - 0.5, wall * 2 + gap, hingeRadius * 2);
+                const anchorGeo = new THREE.BoxGeometry(knuckle_w - 0.5, wall, hingeRadius * 2);
                 const anchorMesh = new THREE.Mesh(anchorGeo, material);
-                let yOffset = (i % 2 === 0) ? -wall : wall;
-                anchorMesh.position.set(i * knuckle_w, yOffset/2, height - hingeRadius/2);
+                let yOffset = (i % 2 === 0) ? -gap/2 - wall/2 : gap/2 + wall/2;
+                anchorMesh.position.set(i * knuckle_w, yOffset, height - hingeRadius/2);
                 boxGroup.add(anchorMesh);
             }
 
-            // --- Text Overlay ---
+            // Text Preview
             if(customText) {
                 const canvas = document.createElement('canvas');
                 canvas.width = 1024;
@@ -470,11 +458,11 @@ module main() {
         build_hinges();
     }
    
-    // Flush embedded text in contrasting filament color
+    // Flush embedded text in contrasting filament color (Extrudes from Z=0 into Z=0.6mm inside lid)
     if (box_text != "") {
         color(text_color)
         translate([0, length/2 + gap/2, 0])
-        rotate([180, 0, 0])
+        rotate([0, 180, 0])
         linear_extrude(0.6)
         text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
     }
@@ -532,7 +520,7 @@ module lid_box() {
         // Cutout 0.61mm socket for flush text inlay
         if (box_text != "") {
             translate([0, 0, -0.01])
-            rotate([180, 0, 0])
+            rotate([0, 180, 0])
             linear_extrude(0.61)
             text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
         }
@@ -553,27 +541,27 @@ module build_hinges() {
     pin_y = 0;
     pin_z = height;
 
-    // BASE HINGE KNUCKLES (Anchored directly to Base Top Rear Rim)
+    // BASE HINGE KNUCKLES (Anchored strictly to Base half in -Y)
     for(i = [-2, 0, 2]) {
         translate([i * knuckle_w, pin_y, pin_z]) {
             teardrop(hr - tol, knuckle_w - tol);
             
-            // Overlapping solid bridge block into Base box rear wall
-            translate([0, -gap/2 - wall/2, -hr/2])
-            cube([knuckle_w - tol, wall, hr], center=true);
+            // Solid bridge block extending strictly into Base rear wall (-Y)
+            translate([- (knuckle_w - tol)/2, -gap/2 - wall, -hr])
+            cube([knuckle_w - tol, wall, hr]);
         }
     }
 
-    // LID HINGE KNUCKLES (Anchored directly to Lid Top Rear Rim)
+    // LID HINGE KNUCKLES (Anchored strictly to Lid half in +Y)
     for(i = [-1, 1]) {
         translate([i * knuckle_w, pin_y, pin_z]) {
             difference() {
                 union() {
                     rotate([0, 90, 0]) cylinder(r=hr, h=knuckle_w - tol, center=true);
                     
-                    // Overlapping solid bridge block into Lid box rear wall
-                    translate([0, gap/2 + wall/2, -hr/2])
-                    cube([knuckle_w - tol, wall, hr], center=true);
+                    // Solid bridge block extending strictly into Lid rear wall (+Y)
+                    translate([- (knuckle_w - tol)/2, gap/2, -hr])
+                    cube([knuckle_w - tol, wall, hr]);
                 }
                 teardrop(hr + tol/2, knuckle_w + 1);
             }
