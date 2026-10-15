@@ -162,7 +162,7 @@
 
         <div class="control-group">
             <label>Custom Text</label>
-            <input type="text" id="customText" value="MY GAME" placeholder="Top Lid Text">
+            <input type="text" id="customText" value="Edit Text - Leave Blank For No Text" placeholder="Top Lid Text">
         </div>
         <div class="control-group">
             <label for="fontSelect">Font</label>
@@ -379,9 +379,10 @@
 
             boxGroup.add(lidGroup);
 
-            // Hinge Knuckles
+            // Hinge Knuckles in Three.js Preview
             const hingeRadius = wall;
             const knuckle_w = width / 5;
+            const bridgeLen = gap/2 + wall;
            
             for(let i of [-2, -1, 0, 1, 2]) {
                 const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, knuckle_w - 0.5, 16);
@@ -390,9 +391,9 @@
                 kMesh.position.set(i * knuckle_w, 0, height);
                 boxGroup.add(kMesh);
                
-                const anchorGeo = new THREE.BoxGeometry(knuckle_w - 0.5, wall, hingeRadius * 2);
+                const anchorGeo = new THREE.BoxGeometry(knuckle_w - 0.5, bridgeLen, hingeRadius);
                 const anchorMesh = new THREE.Mesh(anchorGeo, material);
-                let yOffset = (i % 2 === 0) ? -gap/2 - wall/2 : gap/2 + wall/2;
+                let yOffset = (i % 2 === 0) ? -bridgeLen/2 : bridgeLen/2;
                 anchorMesh.position.set(i * knuckle_w, yOffset, height - hingeRadius/2);
                 boxGroup.add(anchorMesh);
             }
@@ -458,11 +459,12 @@ module main() {
         build_hinges();
     }
    
-    // Inlay Text (Sits inside the 0.6mm lid floor socket)
+    // Inlay Text (Sits securely inside the 0.6mm lid floor socket)
     if (box_text != "") {
         color(text_color)
         translate([0, length/2 + gap/2, 0])
         linear_extrude(0.6)
+        mirror([1, 0, 0])
         text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
     }
 }
@@ -516,10 +518,11 @@ module lid_box() {
         translate([-width/2 + wall, -length/2 + wall, wall])
         cube([width - wall*2, length - wall*2, height + 1]);
        
-        // Cut out clean socket on bottom face for text inlay
+        // Cut out clean 0.6mm socket on bottom face for text inlay
         if (box_text != "") {
-            translate([0, 0, -0.05])
+            translate([0, 0, -0.1])
             linear_extrude(0.7)
+            mirror([1, 0, 0])
             text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
         }
     }
@@ -536,31 +539,31 @@ module build_hinges() {
 
     knuckle_w = width / 5;
     hr = wall;
-    pin_y_base = -gap/2 - wall/2;
-    pin_y_lid  = gap/2 + wall/2;
+    pin_y = 0;
     pin_z = height;
+    bridge_len = gap/2 + wall;
 
-    // BASE HINGE KNUCKLES
+    // BASE HINGE KNUCKLES (Anchored strictly to Base half)
     for(i = [-2, 0, 2]) {
-        translate([i * knuckle_w, pin_y_base, pin_z]) {
+        translate([i * knuckle_w, pin_y, pin_z]) {
             teardrop(hr - tol, knuckle_w - tol);
             
-            // Solid anchor block extending into Base box rear wall
-            translate([-(knuckle_w - tol)/2, -wall/2, -hr])
-            cube([knuckle_w - tol, wall, hr]);
+            // Solid anchor block bridging from center Y=0 to Base Wall
+            translate([0, -bridge_len/2, -hr/2])
+            cube([knuckle_w - tol, bridge_len, hr], center=true);
         }
     }
 
-    // LID HINGE KNUCKLES
+    // LID HINGE KNUCKLES (Anchored strictly to Lid half)
     for(i = [-1, 1]) {
-        translate([i * knuckle_w, pin_y_lid, pin_z]) {
+        translate([i * knuckle_w, pin_y, pin_z]) {
             difference() {
                 union() {
                     rotate([0, 90, 0]) cylinder(r=hr, h=knuckle_w - tol, center=true);
                     
-                    // Solid anchor block extending into Lid box rear wall
-                    translate([-(knuckle_w - tol)/2, -wall/2, -hr])
-                    cube([knuckle_w - tol, wall, hr]);
+                    // Solid anchor block bridging from center Y=0 to Lid Wall
+                    translate([0, bridge_len/2, -hr/2])
+                    cube([knuckle_w - tol, bridge_len, hr], center=true);
                 }
                 teardrop(hr + tol/2, knuckle_w + 1);
             }
