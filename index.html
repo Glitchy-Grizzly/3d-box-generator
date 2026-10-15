@@ -174,6 +174,10 @@
                 <option value="Courier New">Courier New</option>
             </select>
         </div>
+        <div class="control-group" style="text-align: center; margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+            <label style="color: #aaa; margin-bottom: 2px;">Etsy Order Tier:</label>
+            <div id="recommendedTier" style="font-size: 1.1rem; font-weight: bold; color: var(--neon);">Small Box (0 cm³)</div>
+        </div>
 
         <button class="etsy-btn" onclick="saveBoxAndRedirect()">Order Custom Box on Etsy</button>
     </div>
@@ -320,6 +324,27 @@
             document.getElementById('valCompX').innerText = compX;
             document.getElementById('valCompY').innerText = compY;
 
+            // --- ADD THE VOLUME & TIER CALCULATION HERE ---
+            const totalVolumeCm3 = (width * (length * 2) * height) / 1000;
+            let tier = "Small Box";
+
+            if (totalVolumeCm3 > 900) {
+                tier = "Extra Large Box";
+            } else if (totalVolumeCm3 > 450) {
+                tier = "Large Box";
+            } else if (totalVolumeCm3 > 150) {
+                tier = "Medium Box";
+            }
+
+            if (compX > 2 || compY > 2) {
+                tier += " (+ Divider Add-on)";
+            }
+
+            const tierDisplay = document.getElementById('recommendedTier');
+            if (tierDisplay) {
+                tierDisplay.innerText = `${tier} (${Math.round(totalVolumeCm3)} cm³)`;
+            }
+            
             scene.remove(boxGroup);
             boxGroup = new THREE.Group();
 
