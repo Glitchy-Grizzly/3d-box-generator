@@ -380,7 +380,7 @@
             boxGroup.add(lidGroup);
 
             // Hinge Knuckles Preview
-            const hingeRadius = wall * 1.2;
+            const hingeRadius = wall * 1.5;
             const knuckle_w = width / 5;
            
             for(let i of [-2, -1, 0, 1, 2]) {
@@ -428,7 +428,7 @@
         function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
             currentScadCode = `
 // Print-in-Place Hinged Box with Snap-Fit Latch
-// Elevated Free-Rotating Hinge Geometry
+// Slicer-Optimized 0.4mm Pin Clearance Hinge
 
 width = ${w};
 length = ${l};
@@ -437,7 +437,7 @@ wall = ${wall};
 compX = ${cx};
 compY = ${cy};
 gap = ${gap};
-tol = 0.3;
+tol = 0.4;
 $fn = 60;
 
 box_color = "${boxHex}";
@@ -532,27 +532,26 @@ module build_hinges() {
     }
 
     knuckle_w = width / 5;
-    hr = wall * 1.2;          // Outer knuckle radius
-    pin_r = hr * 0.45;        // Internal pin radius
-    pin_z = height + hr*0.8;  // Elevated hinge center line
-    base_rear_y = -gap/2;
-    lid_rear_y  =  gap/2;
+    hr = wall * 1.5;            // Outer knuckle radius (3.0mm)
+    pin_r = 1.8;                // Solid inner pin radius
+    bore_r = pin_r + tol;       // Clearance bore hole radius (2.2mm)
+    pin_z = height + hr * 0.7;  // Elevated hinge center line
 
     // BASE KNUCKLES (Anchored strictly to Base at positions -2, 0, 2)
     for(i = [-2, 0, 2]) {
         translate([i * knuckle_w, 0, pin_z]) {
-            // Base stand/anchor block bridging from rear wall (-Y) to the knuckle center
-            translate([-(knuckle_w - tol)/2, base_rear_y - wall, -pin_z + height])
-            cube([knuckle_w - tol, wall + gap/2, pin_z - height]);
+            // Base anchor block extending strictly in -Y
+            translate([-(knuckle_w - tol)/2, -gap/2 - wall, -pin_z + height])
+            cube([knuckle_w - tol, wall, pin_z - height]);
 
-            // Main outer barrel for base knuckle
-            translate([0, base_rear_y/2, 0])
+            // Outer barrel for base knuckle
+            translate([0, -gap/2 - wall/2, 0])
             rotate([0, 90, 0])
             cylinder(r=hr, h=knuckle_w - tol, center=true);
 
-            // Integrated inner pin extending across all knuckles along X axis
+            // Solid continuous inner pin running through center
             rotate([0, 90, 0])
-            cylinder(r=pin_r - tol, h=knuckle_w + tol*2, center=true);
+            cylinder(r=pin_r, h=knuckle_w + tol*2, center=true);
         }
     }
 
@@ -561,18 +560,18 @@ module build_hinges() {
         translate([i * knuckle_w, 0, pin_z]) {
             difference() {
                 union() {
-                    // Lid stand/anchor block bridging from rear wall (+Y) to the knuckle center
-                    translate([-(knuckle_w - tol)/2, 0, -pin_z + height])
-                    cube([knuckle_w - tol, wall + gap/2, pin_z - height]);
+                    // Lid anchor block extending strictly in +Y
+                    translate([-(knuckle_w - tol)/2, gap/2, -pin_z + height])
+                    cube([knuckle_w - tol, wall, pin_z - height]);
 
-                    // Main outer barrel for lid knuckle
-                    translate([0, lid_rear_y/2, 0])
+                    // Outer barrel for lid knuckle
+                    translate([0, gap/2 + wall/2, 0])
                     rotate([0, 90, 0])
                     cylinder(r=hr, h=knuckle_w - tol, center=true);
                 }
 
-                // 3D-Printable Teardrop bore hole providing 0.3mm clearance around inner pin
-                teardrop(pin_r, knuckle_w + 1);
+                // Wide teardrop bore hole with 0.4mm clearance around inner pin
+                teardrop(bore_r, knuckle_w + 1);
             }
         }
     }
