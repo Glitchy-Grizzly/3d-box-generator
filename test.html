@@ -314,11 +314,33 @@
             const customText = document.getElementById('customText').value;
             const font = document.getElementById('fontSelect').value;
 
+            // Update numbers next to sliders
             document.getElementById('valWidth').innerText = width;
             document.getElementById('valLength').innerText = length;
             document.getElementById('valHeight').innerText = height;
             document.getElementById('valCompX').innerText = compX;
             document.getElementById('valCompY').innerText = compY;
+
+            // --- ADD THE VOLUME & TIER CALCULATION HERE ---
+            const totalVolumeCm3 = (width * (length * 2) * height) / 1000;
+            let tier = "Small Box";
+
+            if (totalVolumeCm3 > 900) {
+                tier = "Extra Large Box";
+            } else if (totalVolumeCm3 > 450) {
+                tier = "Large Box";
+            } else if (totalVolumeCm3 > 150) {
+                tier = "Medium Box";
+            }
+
+            if (compX > 2 || compY > 2) {
+                tier += " (+ Divider Add-on)";
+            }
+
+            const tierDisplay = document.getElementById('recommendedTier');
+            if (tierDisplay) {
+                tierDisplay.innerText = `${tier} (${Math.round(totalVolumeCm3)} cm³)`;
+            }
 
             scene.remove(boxGroup);
             boxGroup = new THREE.Group();
