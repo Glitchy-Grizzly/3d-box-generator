@@ -380,14 +380,14 @@
             boxGroup.add(lidGroup);
 
             // Hinge Knuckles Preview
-            const hingeRadius = wall;
+            const hingeRadius = wall * 1.2;
             const knuckle_w = width / 5;
            
             for(let i of [-2, -1, 0, 1, 2]) {
                 const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, knuckle_w - 0.5, 16);
                 const kMesh = new THREE.Mesh(kGeo, hingeMaterial);
                 kMesh.rotation.z = Math.PI / 2;
-                kMesh.position.set(i * knuckle_w, 0, height);
+                kMesh.position.set(i * knuckle_w, 0, height + hingeRadius*0.8);
                 boxGroup.add(kMesh);
             }
 
@@ -428,7 +428,7 @@
         function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
             currentScadCode = `
 // Print-in-Place Hinged Box with Snap-Fit Latch
-// Solid Clean Knuckle CSG Math
+// Elevated Free-Rotating Hinge Geometry
 
 width = ${w};
 length = ${l};
@@ -522,93 +522,38 @@ module lid_box() {
 }
 
 module build_hinges() {
+    // Teardrop module for 3D-printable horizontal bore holes without overhang supports
+    module teardrop(r, h) {
+        rotate([0, 90, 0])
+        linear_extrude(h, center=true)
+        polygon([
+            [0, -r], [r, 0], [0, r], [-r*0.7, r*0.7], [-r*1.3, 0], [-r*0.7, -r*0.7]
+        ]);
+    }
+
     knuckle_w = width / 5;
-    hr = wall;
-    pin_r = hr * 0.5;
+    hr = wall * 1.2;          // Outer knuckle radius
+    pin_r = hr * 0.45;        // Internal pin radius
+    pin_z = height + hr*0.8;  // Elevated hinge center line
     base_rear_y = -gap/2;
     lid_rear_y  =  gap/2;
 
-    // BASE KNUCKLES (At positions -2, 0, 2)
+    // BASE KNUCKLES (Anchored strictly to Base at positions -2, 0, 2)
     for(i = [-2, 0, 2]) {
-        translate([i * knuckle_w, base_rear_y, height]) {
-            // Main solid knuckle block
-            translate([-(knuckle_w - tol)/2, -wall, -hr])
-            cube([knuckle_w - tol, wall, hr]);
+        translate([i * knuckle_w, 0, pin_z]) {
+            // Base stand/anchor block bridging from rear wall (-Y) to the knuckle center
+            translate([-(knuckle_w - tol)/2, base_rear_y - wall, -pin_z + height])
+            cube([knuckle_w - tol, wall + gap/2, pin_z - height]);
 
-            // Top rounded cap on knuckle
+            // Main outer barrel for base knuckle
+            translate([0, base_rear_y/2, 0])
             rotate([0, 90, 0])
             cylinder(r=hr, h=knuckle_w - tol, center=true);
 
-            // Integrated inner pin extending along X axis into lid knuckles
+            // Integrated inner pin extending across all knuckles along X axis
             rotate([0, 90, 0])
             cylinder(r=pin_r - tol, h=knuckle_w + tol*2, center=true);
         }
     }
 
-    // LID KNUCKLES (At positions -1, 1)
-    for(i = [-1, 1]) {
-        translate([i * knuckle_w, lid_rear_y, height]) {
-            difference() {
-                union() {
-                    // Main solid knuckle block
-                    translate([-(knuckle_w - tol)/2, 0, -hr])
-                    cube([knuckle_w - tol, wall, hr]);
-
-                    // Top rounded cap on knuckle
-                    rotate([0, 90, 0])
-                    cylinder(r=hr, h=knuckle_w - tol, center=true);
-                }
-
-                // Smooth bore hole to house the Base inner pin with 0.3mm tolerance
-                rotate([0, 90, 0])
-                cylinder(r=pin_r, h=knuckle_w + 1, center=true);
-            }
-        }
-    }
-}
-
-main();
-`;
-        }
-
-        function downloadSCAD() {
-            const width = document.getElementById('width').value;
-            const length = document.getElementById('length').value;
-            const height = document.getElementById('height').value;
-            const rawText = document.getElementById('customText').value;
-
-            const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
-            const tempId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-            
-            const filename = `${safeText}_${width}x${length}x${height}_${tempId}.scad`;
-
-            const blob = new Blob([currentScadCode], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        const inputs = document.querySelectorAll('input, select');
-        inputs.forEach(input => input.addEventListener('input', updateModel));
-
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
-        }
-
-        window.addEventListener('resize', () => {
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-        });
-
-        updateModel();
-        animate();
-    </script>
-</body>
-</html>
+    // LID KNUCKLES (
