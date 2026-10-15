@@ -71,10 +71,10 @@
             color: var(--neon);
             font-weight: bold;
         }
-        button.etsy-btn {
+        button {
             width: 100%;
             padding: 12px;
-            background-color: #f1641e;
+            background-color: var(--neon);
             color: white;
             border: none;
             border-radius: 4px;
@@ -82,6 +82,13 @@
             font-weight: bold;
             cursor: pointer;
             transition: background 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #ff5c77;
+        }
+        button.etsy-btn {
+            background-color: #f1641e;
             margin-top: 15px;
         }
         button.etsy-btn:hover {
@@ -611,6 +618,27 @@ module build_lid_hinges() {
 main();
 `;
         }
+
+        window.downloadSCAD = function() {
+            const width = document.getElementById('width').value;
+            const length = document.getElementById('length').value;
+            const height = document.getElementById('height').value;
+            const rawText = document.getElementById('customText').value;
+
+            const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
+            const tempId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            const filename = `${safeText}_${width}x${length}x${height}_${tempId}.scad`;
+
+            const blob = new Blob([currentScadCode], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
 
         const inputs = document.querySelectorAll('input, select');
         inputs.forEach(input => input.addEventListener('input', updateModel));
