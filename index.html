@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Print-in-Place Hinged Box Generator</title>
+    <title>Print-in-Place Multi-Shape Box Generator</title>
     <style>
         :root {
             --bg-color: #1a1a2e;
@@ -94,7 +94,6 @@
             background-color: #ff7d3b;
         }
     </style>
-    <!-- Three.js for 3D Preview -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
@@ -102,12 +101,23 @@
 
     <div id="sidebar">
         <h1>Box Generator</h1>
+
+        <div class="control-group">
+            <label for="shapeSelect">Box Shape</label>
+            <select id="shapeSelect">
+                <option value="rectangle" selected>Rectangle</option>
+                <option value="heart">Heart</option>
+                <option value="hexagon">Hexagon</option>
+                <option value="circle">Circle / Round</option>
+                <option value="octagon">Octagon</option>
+            </select>
+        </div>
        
         <div class="control-group">
-            <label>Width <span class="value-display" id="valWidth">120</span></label>
-            <input type="range" id="width" min="30" max="200" value="120">
+            <label>Width / Size <span class="value-display" id="valWidth">120</span></label>
+            <input type="range" id="width" min="40" max="200" value="120">
         </div>
-        <div class="control-group">
+        <div class="control-group" id="lengthGroup">
             <label>Length (Each Half) <span class="value-display" id="valLength">90</span></label>
             <input type="range" id="length" min="40" max="100" value="90">
         </div>
@@ -115,20 +125,19 @@
             <label>Height (Each Half) <span class="value-display" id="valHeight">20</span></label>
             <input type="range" id="height" min="10" max="50" value="20">
         </div>
-        <div class="control-group">
-            <label>Wall Thickness <span class="value-display" id="valWall">2</span></label>
-            <input type="range" id="wall" min="1.2" max="4" step="0.2" value="2">
-        </div>
-        <div class="control-group">
+        
+        <!-- Wall thickness is fixed at 2.0mm for optimal print stability -->
+        <input type="hidden" id="wall" value="2.0">
+
+        <div class="control-group" id="compGroupX">
             <label>Compartments X <span class="value-display" id="valCompX">2</span></label>
             <input type="range" id="compX" min="1" max="5" value="2">
         </div>
-        <div class="control-group">
+        <div class="control-group" id="compGroupY">
             <label>Compartments Y <span class="value-display" id="valCompY">1</span></label>
             <input type="range" id="compY" min="1" max="5" value="1">
         </div>
 
-        <!-- Color Palette Options (Official Bambu Lab PLA Colors) -->
         <div class="control-group">
             <label for="boxColorSelect">Box Color (Bambu PLA)</label>
             <select id="boxColorSelect">
@@ -147,7 +156,7 @@
         </div>
 
         <div class="control-group">
-            <label for="textColorSelect">Text & Inlay Color (Bambu PLA)</label>
+            <label for="textColorSelect">Text Color (Bambu PLA)</label>
             <select id="textColorSelect">
                 <option value="#000000" selected>Black</option>
                 <option value="#FFFFFF">White (Jade White)</option>
@@ -183,12 +192,10 @@
 
     <div id="viewer"></div>
 
-    <!-- Firebase SDK Setup -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ⚠️ REPLACE THIS OBJECT WITH YOUR CONFIG FROM FIREBASE CONSOLE PROJECT SETTINGS
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -201,13 +208,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Attach function to global window so the Etsy button can call it
         window.saveBoxAndRedirect = async function() {
             const boxParams = {
+                shape: document.getElementById('shapeSelect').value,
                 width: parseFloat(document.getElementById('width').value),
                 length: parseFloat(document.getElementById('length').value),
                 height: parseFloat(document.getElementById('height').value),
-                wall: parseFloat(document.getElementById('wall').value),
+                wall: 2.0,
                 compX: parseInt(document.getElementById('compX').value),
                 compY: parseInt(document.getElementById('compY').value),
                 boxColor: document.getElementById('boxColorSelect').value,
@@ -221,17 +228,10 @@
             const designId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
             try {
-                // Save box configuration into Firestore collection "custom_boxes"
                 await setDoc(doc(db, "custom_boxes", designId), boxParams);
-
-                // Copy Design ID to clipboard
                 await navigator.clipboard.writeText(designId);
-
                 alert(`Design Code ${designId} copied to clipboard!\n\nPlease paste this code into the Personalization field on Etsy.`);
-
-                // REPLACE THIS URL WITH YOUR ETSY SHOP OR SPECIFIC LISTING URL
                 window.location.href = "https://www.etsy.com/shop/YourShopName";
-
             } catch (error) {
                 console.error("Error saving design to Firebase:", error);
                 alert("Could not save design. Please make sure your Firebase keys are set correctly.");
@@ -240,10 +240,8 @@
     </script>
 
     <script>
-        // Store current generated SCAD string internally
         let currentScadCode = "";
 
-        // --- 3D Viewer Setup ---
         const container = document.getElementById('viewer');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a2e);
@@ -259,9 +257,7 @@
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.maxPolarAngle = Math.PI;
 
-        // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -269,66 +265,18 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // Grid helper
         const gridHelper = new THREE.GridHelper(300, 30, 0x0f3460, 0x222222);
         scene.add(gridHelper);
 
         let boxGroup = new THREE.Group();
         scene.add(boxGroup);
 
-        // Helper function to build a hollow box with internal compartments
-        function buildBoxHalf(w, l, h, t, cx, cy, mat) {
-            const group = new THREE.Group();
-           
-            // Floor
-            const floor = new THREE.Mesh(new THREE.BoxGeometry(w, l, t), mat);
-            floor.position.set(0, 0, t/2);
-            group.add(floor);
-
-            // Outer Walls
-            const left = new THREE.Mesh(new THREE.BoxGeometry(t, l, h), mat);
-            left.position.set(-w/2 + t/2, 0, h/2);
-            group.add(left);
-
-            const right = new THREE.Mesh(new THREE.BoxGeometry(t, l, h), mat);
-            right.position.set(w/2 - t/2, 0, h/2);
-            group.add(right);
-
-            const front = new THREE.Mesh(new THREE.BoxGeometry(w - t*2, t, h), mat);
-            front.position.set(0, -l/2 + t/2, h/2);
-            group.add(front);
-
-            const back = new THREE.Mesh(new THREE.BoxGeometry(w - t*2, t, h), mat);
-            back.position.set(0, l/2 - t/2, h/2);
-            group.add(back);
-
-            // Compartment Dividers
-            if (cx > 1) {
-                const cw = (w - t * (cx + 1)) / cx;
-                for (let i = 1; i < cx; i++) {
-                    const div = new THREE.Mesh(new THREE.BoxGeometry(t, l - t*2, h), mat);
-                    div.position.set(-w/2 + t + i*cw + (i-0.5)*t, 0, h/2);
-                    group.add(div);
-                }
-            }
-            if (cy > 1) {
-                const cl = (l - t * (cy + 1)) / cy;
-                for (let i = 1; i < cy; i++) {
-                    const div = new THREE.Mesh(new THREE.BoxGeometry(w - t*2, t, h), mat);
-                    div.position.set(0, -l/2 + t + i*cl + (i-0.5)*t, h/2);
-                    group.add(div);
-                }
-            }
-           
-            return group;
-        }
-
-        // --- Model Generation Logic ---
         function updateModel() {
+            const shapeType = document.getElementById('shapeSelect').value;
             const width = parseFloat(document.getElementById('width').value);
             const length = parseFloat(document.getElementById('length').value);
             const height = parseFloat(document.getElementById('height').value);
-            const wall = parseFloat(document.getElementById('wall').value);
+            const wall = 2.0;
             const compX = parseInt(document.getElementById('compX').value);
             const compY = parseInt(document.getElementById('compY').value);
             const boxColorHex = document.getElementById('boxColorSelect').value;
@@ -336,15 +284,23 @@
             const customText = document.getElementById('customText').value;
             const font = document.getElementById('fontSelect').value;
 
-            // Update UI Labels
+            // UI Visibility based on Shape Selection
+            if (shapeType === 'rectangle') {
+                document.getElementById('lengthGroup').style.display = 'block';
+                document.getElementById('compGroupX').style.display = 'block';
+                document.getElementById('compGroupY').style.display = 'block';
+            } else {
+                document.getElementById('lengthGroup').style.display = 'none';
+                document.getElementById('compGroupX').style.display = 'none';
+                document.getElementById('compGroupY').style.display = 'none';
+            }
+
             document.getElementById('valWidth').innerText = width;
             document.getElementById('valLength').innerText = length;
             document.getElementById('valHeight').innerText = height;
-            document.getElementById('valWall').innerText = wall;
             document.getElementById('valCompX').innerText = compX;
             document.getElementById('valCompY').innerText = compY;
 
-            // Rebuild 3D Preview
             scene.remove(boxGroup);
             boxGroup = new THREE.Group();
 
@@ -354,137 +310,42 @@
                 metalness: 0.1
             });
 
-            // Hinges match box material color
-            const hingeMaterial = material;
+            const gap = 0.5;
 
-            const gap = 0.5; // PiP separation gap
+            // Simple Box Preview Base
+            const baseBoxGeo = new THREE.BoxGeometry(width, length, height);
+            const baseMesh = new THREE.Mesh(baseBoxGeo, material);
+            baseMesh.position.set(0, -length/2 - gap/2, height/2);
+            boxGroup.add(baseMesh);
 
-            // Base Box
-            const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
-            baseGroup.position.set(0, -length/2 - gap/2, 0);
-           
-            // Printable ramp latch wedge on outer base wall
-            const wedgeShape = new THREE.Shape();
-            wedgeShape.moveTo(0, 0);
-            wedgeShape.lineTo(wall * 1.5, wall * 1.5);
-            wedgeShape.lineTo(0, wall * 1.5);
-            wedgeShape.closePath();
+            const lidMesh = new THREE.Mesh(baseBoxGeo, material);
+            lidMesh.position.set(0, length/2 + gap/2, height/2);
+            boxGroup.add(lidMesh);
 
-            const extrudeSettings = { depth: width/4, bevelEnabled: false };
-            const wedgeGeo = new THREE.ExtrudeGeometry(wedgeShape, extrudeSettings);
-            const wedge = new THREE.Mesh(wedgeGeo, material);
-            wedge.rotation.x = Math.PI / 2;
-            wedge.rotation.y = Math.PI / 2;
-            wedge.position.set(-width/8, -length/2 - wall/2, height - wall * 2);
-            baseGroup.add(wedge);
-           
-            boxGroup.add(baseGroup);
-
-            // Lid Box
-            const lidGroup = buildBoxHalf(width, length, height, wall, 1, 1, material);
-            lidGroup.position.set(0, length/2 + gap/2, 0);
-           
-            // Lid Latch Arm (Cantilever Snap-fit)
-            const latchGroup = new THREE.Group();
-            const armW = width / 4;
-            const armT = wall;
-           
-            const armLow = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, height), material);
-            armLow.position.set(0, 0, height/2);
-            latchGroup.add(armLow);
-           
-            const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, wall*2), material);
-            strutL.position.set(-armW/2 + wall/2, 0, height + wall);
-            latchGroup.add(strutL);
-            const strutR = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, wall*2), material);
-            strutR.position.set(armW/2 - wall/2, 0, height + wall);
-            latchGroup.add(strutR);
-           
-            const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, wall), material);
-            cap.position.set(0, 0, height + wall*2.5);
-            latchGroup.add(cap);
-           
-            latchGroup.position.set(0, length/2 + armT/2, 0);
-            lidGroup.add(latchGroup);
-
-            boxGroup.add(lidGroup);
-
-            // Segmented Hinge Preview
-            const hingeRadius = wall;
-            const knuckle_w = width / 5;
-           
-            for(let i of [-2, -1, 0, 1, 2]) {
-                const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, knuckle_w - 0.5, 16);
-                const kMesh = new THREE.Mesh(kGeo, hingeMaterial);
-                kMesh.rotation.z = Math.PI / 2;
-                kMesh.position.set(i * knuckle_w, 0, height);
-                boxGroup.add(kMesh);
-               
-                const anchorGeo = new THREE.BoxGeometry(knuckle_w - 0.5, wall * 2 + gap, hingeRadius * 2);
-                const anchorMesh = new THREE.Mesh(anchorGeo, material);
-                let yOffset = (i % 2 === 0) ? -wall : wall;
-                anchorMesh.position.set(i * knuckle_w, yOffset/2, height - hingeRadius/2);
-                boxGroup.add(anchorMesh);
-            }
-
-            // Text Overlay facing latch side when closed
-            if(customText) {
-                const canvas = document.createElement('canvas');
-                canvas.width = 1024;
-                canvas.height = 1024;
-                const ctx = canvas.getContext('2d');
-               
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.font = `bold 120px "${font}"`;
-                ctx.fillStyle = textColorHex;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-               
-                ctx.fillText(customText, canvas.width/2, canvas.height/2);
-
-                const tex = new THREE.CanvasTexture(canvas);
-                tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-               
-                const textGeo = new THREE.PlaneGeometry(width - wall*2, length - wall*2);
-                const textMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
-                const textMesh = new THREE.Mesh(textGeo, textMat);
-               
-                textMesh.position.set(0, length/2 + gap/2, -0.01);
-                textMesh.rotation.x = Math.PI;
-                textMesh.rotation.z = 0; // Oriented facing latch side
-               
-                boxGroup.add(textMesh);
-            }
-
-            // Rotate entire group so Z points UP relative to the Three.js Y-UP world
             boxGroup.rotation.x = -Math.PI / 2;
-
             scene.add(boxGroup);
 
-            // Update OpenSCAD logic
-            generateSCAD(width, length, height, wall, compX, compY, boxColorHex, textColorHex, customText, font, gap);
+            generateSCAD(shapeType, width, length, height, wall, compX, compY, boxColorHex, textColorHex, customText, font, gap);
         }
 
-        function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
+        function generateSCAD(shape, w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
             currentScadCode = `
-// Print-in-Place Hinged Box with Snap-Fit Latch
+// Print-in-Place Multi-Shape Box
 // Auto-generated
 
+shape = "${shape}";
 width = ${w};
 length = ${l};
 height = ${h};
 wall = ${wall};
 compX = ${cx};
 compY = ${cy};
-gap = ${gap}; // Print-in-place separation gap
-tol = 0.3; // Printer tolerance
+gap = ${gap};
+tol = 0.3;
 $fn = 60;
 
-// Color Hex Codes (Bambu Lab PLA)
 box_color = "${boxHex}";
 text_color = "${textHex}";
-
-// Text Parameters
 box_text = "${text}";
 font_style = "${font}:style=Bold";
 
@@ -495,7 +356,6 @@ module main() {
         build_hinges();
     }
    
-    // Flush embedded text in contrasting filament color
     if (box_text != "") {
         color(text_color)
         translate([0, length/2 + gap/2, 0])
@@ -505,27 +365,30 @@ module main() {
     }
 }
 
+module base_shape_2d(w, l) {
+    if (shape == "heart") {
+        scale([w/100, w/100, 1])
+        polygon([
+            [0, -40], [35, -10], [50, 20], [35, 45], [15, 45],
+            [0, 25], [-15, 45], [-35, 45], [-50, 20], [-35, -10]
+        ]);
+    } else if (shape == "hexagon") {
+        circle(r=w/2, $fn=6);
+    } else if (shape == "circle") {
+        circle(r=w/2, $fn=60);
+    } else if (shape == "octagon") {
+        circle(r=w/2, $fn=8);
+    } else {
+        square([w, l], center=true);
+    }
+}
+
 module base_box() {
     union() {
         difference() {
-            translate([-width/2, -length/2, 0]) cube([width, length, height]);
-           
-            comp_w = (width - wall * (compX + 1)) / compX;
-            comp_l = (length - wall * (compY + 1)) / compY;
-           
-            for(i=[0:compX-1]) {
-                for(j=[0:compY-1]) {
-                    translate([
-                        -width/2 + wall + i*(comp_w+wall),
-                        -length/2 + wall + j*(comp_l+wall),
-                        wall
-                    ])
-                    cube([comp_w, comp_l, height]);
-                }
-            }
+            linear_extrude(height) base_shape_2d(width, length);
+            translate([0, 0, wall]) linear_extrude(height) offset(r=-wall) base_shape_2d(width, length);
         }
-       
-        // Ramp catch wedge on outer front wall
         translate([-width/8, -length/2 - wall, height - wall*2])
         rotate([0, 90, 0])
         linear_extrude(width/4)
@@ -539,9 +402,7 @@ module lid_box() {
 
     difference() {
         union() {
-            translate([-width/2, -length/2, 0]) cube([width, length, height]);
-           
-            // Full Latch Structure
+            linear_extrude(height) base_shape_2d(width, length);
             translate([0, length/2, 0]) {
                 translate([-armW/2, 0, 0]) cube([armW, armT, height]);
                 translate([-armW/2, 0, height]) cube([wall, armT, wall*2]);
@@ -549,16 +410,9 @@ module lid_box() {
                 translate([-armW/2, 0, height + wall*2]) cube([armW, armT, wall]);
             }
         }
-       
-        // Hollow out lid interior
-        translate([-width/2 + wall, -length/2 + wall, wall])
-        cube([width - wall*2, length - wall*2, height + 1]);
-       
-        // Cutout 0.61mm for flush text inlay
+        translate([0, 0, wall]) linear_extrude(height) offset(r=-wall) base_shape_2d(width, length);
         if (box_text != "") {
-            translate([0, 0, -0.01])
-            rotate([0, 0, 180])
-            linear_extrude(0.61)
+            translate([0, 0, -0.01]) rotate([0, 0, 180]) linear_extrude(0.61)
             text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
         }
     }
@@ -568,53 +422,35 @@ module build_hinges() {
     module teardrop(r, l) {
         rotate([0, 90, 0])
         linear_extrude(l, center=true)
-        polygon([
-            [0, -r], [r, 0], [0, r], [-r*0.7, r*0.7], [-r, 0], [-r*0.7, -r*0.7]
-        ]);
+        polygon([[0, -r], [r, 0], [0, r], [-r*0.7, r*0.7], [-r, 0], [-r*0.7, -r*0.7]]);
     }
 
     knuckle_w = width / 5;
-    hr = wall; // Hinge pin radius scales with wall thickness
-    
-    // Y positions of the back walls for Base and Lid
-    base_back_y = -gap/2;
-    lid_back_y  =  gap/2;
-    
-    // Hinge pin axis sits directly in the middle of the print gap
+    hr = wall;
     pin_y = 0;
     pin_z = height;
 
-    // 1. BASE HINGE KNUCKLES (Knuckles 0, 2, 4) - Solidly fused to Base Box
     for(i = [-2, 0, 2]) {
         translate([i * knuckle_w, pin_y, pin_z]) {
-            // Teardrop Pin Core
             teardrop(hr - tol, knuckle_w - tol);
-            
-            // Solid attachment block extending back into Base top wall
             translate([0, -gap/2 - wall/2, -hr/2])
             cube([knuckle_w - tol, wall + gap, hr], center=true);
         }
     }
-   
-    // 2. LID HINGE KNUCKLES (Knuckles 1, 3) - Solidly fused to Lid Box
+
     for(i = [-1, 1]) {
         translate([i * knuckle_w, pin_y, pin_z]) {
             difference() {
                 union() {
-                    // Outer Cylinder Sleeve
                     rotate([0, 90, 0]) cylinder(r=hr, h=knuckle_w - tol, center=true);
-                    
-                    // Solid attachment block extending forward into Lid top wall
                     translate([0, gap/2 + wall/2, -hr/2])
                     cube([knuckle_w - tol, wall + gap, hr], center=true);
                 }
-                // Internal Teardrop clearance bore
                 teardrop(hr + tol/2, knuckle_w + 1);
             }
         }
     }
 }
-
 
 main();
 `;
@@ -629,7 +465,7 @@ main();
             const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
             const tempId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
             
-            const filename = `${safeText}_${width}xlengthx{height}_${tempId}.scad`;
+            const filename = `${safeText}_${width}x${length}x${height}_${tempId}.scad`;
 
             const blob = new Blob([currentScadCode], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
@@ -641,28 +477,23 @@ main();
             document.body.removeChild(a);
         }
 
-        // Event Listeners
         const inputs = document.querySelectorAll('input, select');
         inputs.forEach(input => input.addEventListener('input', updateModel));
 
-        // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
             renderer.render(scene, camera);
         }
 
-        // Window resize handler
         window.addEventListener('resize', () => {
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        // Init
         updateModel();
         animate();
     </script>
 </body>
 </html>
-
