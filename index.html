@@ -458,11 +458,11 @@ module main() {
         build_hinges();
     }
    
-    // Flush embedded text in contrasting filament color (Extrudes from Z=0 into Z=0.6mm inside lid)
+    // Flush embedded inlay text extruded from Z=0 up to Z=0.6mm inside the lid floor socket
     if (box_text != "") {
         color(text_color)
         translate([0, length/2 + gap/2, 0])
-        rotate([0, 180, 0])
+        mirror([0, 0, 1])
         linear_extrude(0.6)
         text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
     }
@@ -517,10 +517,10 @@ module lid_box() {
         translate([-width/2 + wall, -length/2 + wall, wall])
         cube([width - wall*2, length - wall*2, height + 1]);
        
-        // Cutout 0.61mm socket for flush text inlay
+        // Cutout 0.61mm socket on bottom face for flush text inlay
         if (box_text != "") {
-            translate([0, 0, -0.01])
-            rotate([0, 180, 0])
+            translate([0, 0, -0.005])
+            mirror([0, 0, 1])
             linear_extrude(0.61)
             text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
         }
@@ -541,27 +541,27 @@ module build_hinges() {
     pin_y = 0;
     pin_z = height;
 
-    // BASE HINGE KNUCKLES (Anchored strictly to Base half in -Y)
+    // BASE HINGE KNUCKLES (Anchored strictly to Base half, -Y direction)
     for(i = [-2, 0, 2]) {
         translate([i * knuckle_w, pin_y, pin_z]) {
             teardrop(hr - tol, knuckle_w - tol);
             
-            // Solid bridge block extending strictly into Base rear wall (-Y)
-            translate([- (knuckle_w - tol)/2, -gap/2 - wall, -hr])
-            cube([knuckle_w - tol, wall, hr]);
+            // Bridge block stays strictly on Base side (-Y)
+            translate([-(knuckle_w - tol)/2, -gap/2 - wall, -hr/2])
+            cube([knuckle_w - tol, wall, hr/2]);
         }
     }
 
-    // LID HINGE KNUCKLES (Anchored strictly to Lid half in +Y)
+    // LID HINGE KNUCKLES (Anchored strictly to Lid half, +Y direction)
     for(i = [-1, 1]) {
         translate([i * knuckle_w, pin_y, pin_z]) {
             difference() {
                 union() {
                     rotate([0, 90, 0]) cylinder(r=hr, h=knuckle_w - tol, center=true);
                     
-                    // Solid bridge block extending strictly into Lid rear wall (+Y)
-                    translate([- (knuckle_w - tol)/2, gap/2, -hr])
-                    cube([knuckle_w - tol, wall, hr]);
+                    // Bridge block stays strictly on Lid side (+Y)
+                    translate([-(knuckle_w - tol)/2, gap/2, -hr/2])
+                    cube([knuckle_w - tol, wall, hr/2]);
                 }
                 teardrop(hr + tol/2, knuckle_w + 1);
             }
