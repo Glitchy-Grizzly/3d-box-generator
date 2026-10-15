@@ -601,11 +601,21 @@ main();
         }
 
         function downloadSCAD() {
+            const width = document.getElementById('width').value;
+            const length = document.getElementById('length').value;
+            const height = document.getElementById('height').value;
+            const rawText = document.getElementById('customText').value;
+
+            const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
+            const tempId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+            const filename = `${safeText}_${width}x${length}x${height}_${tempId}.scad`;
+
             const blob = new Blob([currentScadCode], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = "pip_hinged_box.scad";
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
