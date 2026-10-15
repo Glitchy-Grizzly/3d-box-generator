@@ -115,7 +115,7 @@
        
         <div class="control-group">
             <label>Width / Size <span class="value-display" id="valWidth">120</span></label>
-            <input type="range" id="width" min="50" max="200" value="120">
+            <input type="range" id="width" min="60" max="200" value="120">
         </div>
         <div class="control-group" id="lengthGroup">
             <label>Length (Each Half) <span class="value-display" id="valLength">90</span></label>
@@ -380,6 +380,14 @@
             const baseHalf = createHollowMesh(shapeType, width, length, height, wall, material);
             baseHalf.position.set(0, -length / 2 - gap / 2, 0);
 
+            // Mounting Tab for Hinge (Rear)
+            const baseHingeTab = new THREE.Mesh(new THREE.BoxGeometry(width, length / 2, height), material);
+            baseHingeTab.position.set(0, length / 4, height / 2);
+            
+            // Mounting Tab for Latch (Front)
+            const baseLatchTab = new THREE.Mesh(new THREE.BoxGeometry(width / 2, length / 2, height), material);
+            baseLatchTab.position.set(0, -length / 4, height / 2);
+
             // Catch Wedge
             const wedgeShape = new THREE.Shape();
             wedgeShape.moveTo(0, 0);
@@ -393,11 +401,11 @@
             wedge.position.set(-width / 8, -length / 2 - wall / 2, height - wall * 2);
             baseHalf.add(wedge);
 
-            // Compartment Dividers
+            // Compartment Dividers spanning full inner width and length
             if (compX > 1) {
                 const cw = (width - wall * (compX + 1)) / compX;
                 for (let i = 1; i < compX; i++) {
-                    const div = new THREE.Mesh(new THREE.BoxGeometry(wall, length * 0.7, height - wall), material);
+                    const div = new THREE.Mesh(new THREE.BoxGeometry(wall, length - wall * 2, height - wall), material);
                     div.position.set(-width / 2 + wall + i * cw + (i - 0.5) * wall, 0, (height + wall) / 2);
                     baseHalf.add(div);
                 }
@@ -405,7 +413,7 @@
             if (compY > 1) {
                 const cl = (length - wall * (compY + 1)) / compY;
                 for (let i = 1; i < compY; i++) {
-                    const div = new THREE.Mesh(new THREE.BoxGeometry(width * 0.7, wall, height - wall), material);
+                    const div = new THREE.Mesh(new THREE.BoxGeometry(width - wall * 2, wall, height - wall), material);
                     div.position.set(0, -length / 2 + wall + i * cl + (i - 0.5) * wall, (height + wall) / 2);
                     baseHalf.add(div);
                 }
@@ -548,10 +556,17 @@ module base_shape_2d(w, l) {
 module base_box() {
     union() {
         difference() {
-            linear_extrude(height) base_shape_2d(width, length);
+            union() {
+                linear_extrude(height) base_shape_2d(width, length);
+                // Straight rear mounting pad for hinge fusion
+                translate([-width/2, length/2 - wall, 0]) cube([width, wall, height]);
+                // Straight front mounting pad for latch catch
+                translate([-width/4, -length/2, 0]) cube([width/2, wall, height]);
+            }
             translate([0, 0, wall]) linear_extrude(height) offset(r=-wall) base_shape_2d(width, length);
         }
         
+        // Compartments span full interior and clip to shell walls
         if (compX > 1 || compY > 1) {
             intersection() {
                 linear_extrude(height) offset(r=-wall) base_shape_2d(width, length);
@@ -575,6 +590,7 @@ module base_box() {
             }
         }
 
+        // Ramp Catch Wedge
         translate([-width/8, -length/2 - wall, height - wall*2])
         rotate([0, 90, 0])
         linear_extrude(width/4)
@@ -589,6 +605,10 @@ module lid_box() {
     difference() {
         union() {
             linear_extrude(height) base_shape_2d(width, length);
+            // Straight rear mounting pad for hinge fusion
+            translate([-width/2, -length/2, 0]) cube([width, wall, height]);
+            
+            // Cantilever Snap Latch Structure
             translate([0, length/2, 0]) {
                 translate([-armW/2, 0, 0]) cube([armW, armT, height]);
                 translate([-armW/2, 0, height]) cube([wall, armT, wall*2]);
