@@ -428,7 +428,7 @@
         function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
             currentScadCode = `
 // Print-in-Place Hinged Box with Snap-Fit Latch
-// Perfectly Aligned Free-Rotating Hinge
+// Continuous Internal Pin Hinge CSG Math
 
 width = ${w};
 length = ${l};
@@ -437,7 +437,7 @@ wall = ${wall};
 compX = ${cx};
 compY = ${cy};
 gap = ${gap};
-tol = 0.3;
+tol = 0.4;
 $fn = 60;
 
 box_color = "${boxHex}";
@@ -449,7 +449,8 @@ module main() {
     color(box_color) {
         translate([0, -length/2 - gap/2, 0]) base_box();
         translate([0, length/2 + gap/2, 0]) lid_box();
-        build_hinges();
+        build_base_hinges();
+        build_lid_hinges();
     }
    
     // TEXT INLAY (Flush face, 0.1mm drop for single-click Bambu Studio painting)
@@ -521,61 +522,66 @@ module lid_box() {
     }
 }
 
-module build_hinges() {
+module build_base_hinges() {
     knuckle_w = width / 5;
-    hr = wall;               // Outer knuckle radius
-    pin_r = 1.2;             // Inner pin radius
-    bore_r = pin_r + tol;    // Clearance hole radius (1.5mm)
-    pin_z = height + hr;     // Elevation above top edge
+    hr = wall;               // Outer knuckle radius (2.0mm)
+    pin_r = 1.0;             // Solid inner pin radius
+    pin_z = height + hr;     // Elevated center axis
 
-    // BASE KNUCKLES (Positions -2, 0, 2)
+    // BASE KNUCKLES (Positions -2, 0, 2: Anchored to Base wall)
     for(i = [-2, 0, 2]) {
         translate([i * knuckle_w, 0, pin_z]) {
-            // Anchor bridge strictly on Base side (-Y)
+            // Anchor bridge back to base wall (-Y)
             translate([-(knuckle_w - tol)/2, -wall - gap/2, -pin_z + height])
             cube([knuckle_w - tol, wall, pin_z - height]);
 
-            // Solid Base Knuckle Barrel
+            // Base barrel
             rotate([0, 90, 0])
             cylinder(r=hr, h=knuckle_w - tol, center=true);
-
-            // Left Pin Stub
-            translate([-(knuckle_w - tol)/2, 0, 0])
-            rotate([0, -90, 0])
-            cylinder(r1=pin_r, r2=pin_r - 0.3, h=1.5, $fn=30);
-
-            // Right Pin Stub
-            translate([(knuckle_w - tol)/2, 0, 0])
-            rotate([0, 90, 0])
-            cylinder(r1=pin_r, r2=pin_r - 0.3, h=1.5, $fn=30);
         }
     }
 
-    // LID KNUCKLES (Positions -1, 1)
-    for(i = [-1, 1]) {
-        translate([i * knuckle_w, 0, pin_z]) {
-            difference() {
-                union() {
-                    // Anchor bridge strictly on Lid side (+Y)
+    // CONTINUOUS INNER PIN (Extends through entire length along X axis, attached to Base)
+    translate([0, 0, pin_z])
+    rotate([0, 90, 0])
+    cylinder(r=pin_r, h=width - tol*2, center=true);
+}
+
+module build_lid_hinges() {
+    module teardrop_channel(r, h) {
+        rotate([0, 90, 0])
+        linear_extrude(h, center=true)
+        polygon([
+            [0, -r], [r, 0], [0, r], [-r*0.7, r*0.7], [-r*1.4, 0], [-r*0.7, -r*0.7]
+        ]);
+    }
+
+    knuckle_w = width / 5;
+    hr = wall;               // Outer knuckle radius (2.0mm)
+    pin_r = 1.0;             // Solid inner pin radius
+    bore_r = pin_r + tol;    // Clearance bore radius (1.4mm)
+    pin_z = height + hr;     // Elevated center axis
+
+    // LID KNUCKLES WITH A CONTINUOUS CLEARANCE BORE
+    difference() {
+        // Solid Lid Knuckle barrels and bridges
+        union() {
+            for(i = [-1, 1]) {
+                translate([i * knuckle_w, 0, pin_z]) {
+                    // Anchor bridge back to lid wall (+Y)
                     translate([-(knuckle_w - tol)/2, gap/2, -pin_z + height])
                     cube([knuckle_w - tol, wall, pin_z - height]);
 
-                    // Solid Lid Knuckle Barrel
+                    // Lid barrel
                     rotate([0, 90, 0])
                     cylinder(r=hr, h=knuckle_w - tol, center=true);
                 }
-
-                // Left Pin Socket Clearance
-                translate([-(knuckle_w - tol)/2 - 0.01, 0, 0])
-                rotate([0, 90, 0])
-                cylinder(r=bore_r, h=2.0, $fn=30);
-
-                // Right Pin Socket Clearance
-                translate([(knuckle_w - tol)/2 + 0.01, 0, 0])
-                rotate([0, -90, 0])
-                cylinder(r=bore_r, h=2.0, $fn=30);
             }
         }
+
+        // CONTINUOUS TEARDROP CHANNEL: Subtracted straight through the lid knuckles to house the base pin
+        translate([0, 0, pin_z])
+        teardrop_channel(bore_r, width + 10);
     }
 }
 
