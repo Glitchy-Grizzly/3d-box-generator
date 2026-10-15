@@ -380,14 +380,14 @@
             boxGroup.add(lidGroup);
 
             // Hinge Knuckles Preview
-            const hingeRadius = wall * 1.5;
+            const hingeRadius = wall;
             const knuckle_w = width / 5;
            
             for(let i of [-2, -1, 0, 1, 2]) {
                 const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, knuckle_w - 0.5, 16);
                 const kMesh = new THREE.Mesh(kGeo, hingeMaterial);
                 kMesh.rotation.z = Math.PI / 2;
-                kMesh.position.set(i * knuckle_w, 0, height + hingeRadius*0.8);
+                kMesh.position.set(i * knuckle_w, 0, height + hingeRadius);
                 boxGroup.add(kMesh);
             }
 
@@ -428,7 +428,7 @@
         function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
             currentScadCode = `
 // Print-in-Place Hinged Box with Snap-Fit Latch
-// Slicer-Optimized 0.4mm Pin Clearance Hinge
+// Perfectly Aligned Free-Rotating Hinge
 
 width = ${w};
 length = ${l};
@@ -437,7 +437,7 @@ wall = ${wall};
 compX = ${cx};
 compY = ${cy};
 gap = ${gap};
-tol = 0.4;
+tol = 0.3;
 $fn = 60;
 
 box_color = "${boxHex}";
