@@ -511,76 +511,50 @@ module base_box() {
             }
         }
        
-        // Ramp Catch Wedge
-        translate([-width/8, -length/2 - wall, height - wall*2])
+        // Ramp Catch Wedge (Flat edge facing toward build plate / Z=0)
+        translate([-width/8, -length/2 - wall, height - wall*1.5])
         rotate([0, 90, 0])
         linear_extrude(width/4)
-        polygon([[0,0], [wall*1.5, wall*1.5], [0, wall*1.5]]);
-    }
-}
-
-module lid_box() {
-    armW = width / 4;
-    armT = wall;
-
-    difference() {
-        union() {
-            translate([-width/2, -length/2, 0]) cube([width, length, height]);
-           
-            // Cantilever Snap Latch Structure
-            translate([0, length/2, 0]) {
-                translate([-armW/2, 0, 0]) cube([armW, armT, height]);
-                translate([-armW/2, 0, height]) cube([wall, armT, wall*2]);
-                translate([armW/2 - wall, 0, height]) cube([wall, armT, wall*2]);
-                translate([-armW/2, 0, height + wall*2]) cube([armW, armT, wall]);
-            }
-        }
-       
-        // Hollow lid interior
-        translate([-width/2 + wall, -length/2 + wall, wall])
-        cube([width - wall*2, length - wall*2, height + 1]);
-       
-        // Socket cutout for text inlay
-        if (box_text != "") {
-            translate([0, 0, -0.2])
-            linear_extrude(0.8)
-            mirror([1, 0, 0])
-            text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
-        }
+        polygon([[0,0], [wall*1.5, 0], [0, wall*1.5]]);
     }
 }
 
 module build_base_hinges() {
     knuckle_w = width / 5;
     hr = wall;               // Outer knuckle radius (2.0mm)
-    pin_r = 1.0;             // Solid inner pin radius
+    pin_r = 1.0;             // Inner pin radius
     pin_z = height + hr;     // Elevated center axis
-    hinge_gap = 0.8;         // Expanded gap clearance against fusion
+    hinge_gap = 0.8;         // Gap between base and lid bridges
+    k_tol = 0.8;             // Generous X-axis end clearance between knuckles
 
     // BASE KNUCKLES (Positions -2, 0, 2: Anchored to Base wall)
     for(i = [-2, 0, 2]) {
         translate([i * knuckle_w, 0, pin_z]) {
-            // Anchor bridge with 45-degree relief bevel on top edge
+            // Anchor bridge with 45-degree relief bevel
             difference() {
-                translate([-(knuckle_w - 0.5)/2, -wall - hinge_gap/2, -pin_z + height])
-                cube([knuckle_w - 0.5, wall, pin_z - height]);
+                translate([-(knuckle_w - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
+                cube([knuckle_w - k_tol, wall, pin_z - height]);
 
-                // 45 degree relief cut along the gap face
                 translate([-knuckle_w, -hinge_gap/2, pin_z - height - 0.5])
                 rotate([45, 0, 0])
                 cube([knuckle_w*2, wall, wall]);
             }
 
-            // Base barrel
+            // Outer Base Barrel
             rotate([0, 90, 0])
-            cylinder(r=hr, h=knuckle_w - 0.5, center=true);
+            cylinder(r=hr, h=knuckle_w - k_tol, center=true);
+
+            // Left Pin Stub
+            translate([-(knuckle_w - k_tol)/2 - 1.2, 0, 0])
+            rotate([0, 90, 0])
+            cylinder(r=pin_r, h=1.5, center=true);
+
+            // Right Pin Stub
+            translate([(knuckle_w - k_tol)/2 + 1.2, 0, 0])
+            rotate([0, 90, 0])
+            cylinder(r=pin_r, h=1.5, center=true);
         }
     }
-
-    // CONTINUOUS INNER PIN
-    translate([0, 0, pin_z])
-    rotate([0, 90, 0])
-    cylinder(r=pin_r, h=width - 1.0, center=true);
 }
 
 module build_lid_hinges() {
@@ -594,10 +568,11 @@ module build_lid_hinges() {
 
     knuckle_w = width / 5;
     hr = wall;               // Outer knuckle radius (2.0mm)
-    pin_r = 1.0;             // Solid inner pin radius
-    bore_r = pin_r + 0.45;   // Increased bore clearance (1.45mm)
-    pin_z = height + hr;     // Elevated center axis
+    pin_r = 1.0;             
+    bore_r = pin_r + 0.5;    // 1.5mm wide bore hole for clean 0.5mm air clearance
+    pin_z = height + hr;     
     hinge_gap = 0.8;
+    k_tol = 0.8;
 
     difference() {
         union() {
@@ -605,23 +580,22 @@ module build_lid_hinges() {
                 translate([i * knuckle_w, 0, pin_z]) {
                     // Anchor bridge with 45-degree relief bevel
                     difference() {
-                        translate([-(knuckle_w - 0.5)/2, hinge_gap/2, -pin_z + height])
-                        cube([knuckle_w - 0.5, wall, pin_z - height]);
+                        translate([-(knuckle_w - k_tol)/2, hinge_gap/2, -pin_z + height])
+                        cube([knuckle_w - k_tol, wall, pin_z - height]);
 
-                        // 45 degree relief cut along the gap face
                         translate([-knuckle_w, hinge_gap/2 - wall + 0.5, pin_z - height - 0.5])
                         rotate([45, 0, 0])
                         cube([knuckle_w*2, wall, wall]);
                     }
 
-                    // Lid barrel
+                    // Outer Lid Barrel
                     rotate([0, 90, 0])
-                    cylinder(r=hr, h=knuckle_w - 0.5, center=true);
+                    cylinder(r=hr, h=knuckle_w - k_tol, center=true);
                 }
             }
         }
 
-        // Continuous teardrop channel
+        // Teardrop channel cut through Lid Knuckles only
         translate([0, 0, pin_z])
         teardrop_channel(bore_r, width + 10);
     }
