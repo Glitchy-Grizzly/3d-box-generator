@@ -574,29 +574,47 @@ module build_hinges() {
     }
 
     knuckle_w = width / 5;
-    hr = wall;
-   
-    for(i=[-2, 0, 2]) {
-        translate([i * knuckle_w, 0, height]) {
+    hr = wall; // Hinge pin radius scales with wall thickness
+    
+    // Y positions of the back walls for Base and Lid
+    base_back_y = -gap/2;
+    lid_back_y  =  gap/2;
+    
+    // Hinge pin axis sits directly in the middle of the print gap
+    pin_y = 0;
+    pin_z = height;
+
+    // 1. BASE HINGE KNUCKLES (Knuckles 0, 2, 4) - Solidly fused to Base Box
+    for(i = [-2, 0, 2]) {
+        translate([i * knuckle_w, pin_y, pin_z]) {
+            // Teardrop Pin Core
+            teardrop(hr - tol, knuckle_w - tol);
+            
+            // Solid attachment block extending back into Base top wall
             translate([0, -gap/2 - wall/2, -hr/2])
             cube([knuckle_w - tol, wall + gap, hr], center=true);
-            teardrop(hr - tol, knuckle_w - tol);
         }
     }
    
-    for(i=[-1, 1]) {
-        translate([i * knuckle_w, 0, height]) {
+    // 2. LID HINGE KNUCKLES (Knuckles 1, 3) - Solidly fused to Lid Box
+    for(i = [-1, 1]) {
+        translate([i * knuckle_w, pin_y, pin_z]) {
             difference() {
                 union() {
+                    // Outer Cylinder Sleeve
                     rotate([0, 90, 0]) cylinder(r=hr, h=knuckle_w - tol, center=true);
+                    
+                    // Solid attachment block extending forward into Lid top wall
                     translate([0, gap/2 + wall/2, -hr/2])
                     cube([knuckle_w - tol, wall + gap, hr], center=true);
                 }
+                // Internal Teardrop clearance bore
                 teardrop(hr + tol/2, knuckle_w + 1);
             }
         }
     }
 }
+
 
 main();
 `;
@@ -611,7 +629,7 @@ main();
             const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
             const tempId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
             
-            const filename = `${safeText}_${width}x${length}x${height}_${tempId}.scad`;
+            const filename = `${safeText}_${width}xlengthx{height}_${tempId}.scad`;
 
             const blob = new Blob([currentScadCode], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
@@ -647,3 +665,4 @@ main();
     </script>
 </body>
 </html>
+
