@@ -86,16 +86,25 @@
         };
 
         window.downloadScad = function() {
-            const id = document.getElementById('designIdInput').value.trim().toUpperCase();
-            const blob = new Blob([currentScad], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${id}.scad`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        };
+    const id = document.getElementById('designIdInput').value.trim().toUpperCase();
+    
+    // Clean custom text for safe filename (remove special characters)
+    const safeText = (currentData.customText || "BOX")
+        .replace(/[^a-zA-Z0-0\s_-]/g, '')
+        .trim() || "CUSTOM_BOX";
+
+    // Format: "MY GAME_120x90x20_BOX-A8K2.scad"
+    const filename = `${safeText}_${currentData.width}x${currentData.length}x${currentData.height}_${id}.scad`;
+
+    const blob = new Blob([currentScad], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+};
     </script>
 </body>
 </html>
