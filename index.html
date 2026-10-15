@@ -353,7 +353,9 @@
                 roughness: 0.4,
                 metalness: 0.1
             });
-            const hingeMaterial = new THREE.MeshStandardMaterial({ color: 0x0f3460 });
+
+            // Hinges match box material color
+            const hingeMaterial = material;
 
             const gap = 0.5; // PiP separation gap
 
@@ -608,7 +610,7 @@ main();
 
             const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
             const tempId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-    
+            
             const filename = `${safeText}_${width}x${length}x${height}_${tempId}.scad`;
 
             const blob = new Blob([currentScadCode], { type: "text/plain" });
