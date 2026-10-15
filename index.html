@@ -552,24 +552,32 @@ module build_base_hinges() {
     hr = wall;               // Outer knuckle radius (2.0mm)
     pin_r = 1.0;             // Solid inner pin radius
     pin_z = height + hr;     // Elevated center axis
+    hinge_gap = 0.8;         // Expanded gap clearance against fusion
 
     // BASE KNUCKLES (Positions -2, 0, 2: Anchored to Base wall)
     for(i = [-2, 0, 2]) {
         translate([i * knuckle_w, 0, pin_z]) {
-            // Anchor bridge back to base wall (-Y)
-            translate([-(knuckle_w - tol)/2, -wall - gap/2, -pin_z + height])
-            cube([knuckle_w - tol, wall, pin_z - height]);
+            // Anchor bridge with 45-degree relief bevel on top edge
+            difference() {
+                translate([-(knuckle_w - 0.5)/2, -wall - hinge_gap/2, -pin_z + height])
+                cube([knuckle_w - 0.5, wall, pin_z - height]);
+
+                // 45 degree relief cut along the gap face
+                translate([-knuckle_w, -hinge_gap/2, pin_z - height - 0.5])
+                rotate([45, 0, 0])
+                cube([knuckle_w*2, wall, wall]);
+            }
 
             // Base barrel
             rotate([0, 90, 0])
-            cylinder(r=hr, h=knuckle_w - tol, center=true);
+            cylinder(r=hr, h=knuckle_w - 0.5, center=true);
         }
     }
 
-    // CONTINUOUS INNER PIN (Extends through entire length along X axis, attached to Base)
+    // CONTINUOUS INNER PIN
     translate([0, 0, pin_z])
     rotate([0, 90, 0])
-    cylinder(r=pin_r, h=width - tol*2, center=true);
+    cylinder(r=pin_r, h=width - 1.0, center=true);
 }
 
 module build_lid_hinges() {
@@ -584,27 +592,33 @@ module build_lid_hinges() {
     knuckle_w = width / 5;
     hr = wall;               // Outer knuckle radius (2.0mm)
     pin_r = 1.0;             // Solid inner pin radius
-    bore_r = pin_r + tol;    // Clearance bore radius (1.4mm)
+    bore_r = pin_r + 0.45;   // Increased bore clearance (1.45mm)
     pin_z = height + hr;     // Elevated center axis
+    hinge_gap = 0.8;
 
-    // LID KNUCKLES WITH A CONTINUOUS CLEARANCE BORE
     difference() {
-        // Solid Lid Knuckle barrels and bridges
         union() {
             for(i = [-1, 1]) {
                 translate([i * knuckle_w, 0, pin_z]) {
-                    // Anchor bridge back to lid wall (+Y)
-                    translate([-(knuckle_w - tol)/2, gap/2, -pin_z + height])
-                    cube([knuckle_w - tol, wall, pin_z - height]);
+                    // Anchor bridge with 45-degree relief bevel
+                    difference() {
+                        translate([-(knuckle_w - 0.5)/2, hinge_gap/2, -pin_z + height])
+                        cube([knuckle_w - 0.5, wall, pin_z - height]);
+
+                        // 45 degree relief cut along the gap face
+                        translate([-knuckle_w, hinge_gap/2 - wall + 0.5, pin_z - height - 0.5])
+                        rotate([45, 0, 0])
+                        cube([knuckle_w*2, wall, wall]);
+                    }
 
                     // Lid barrel
                     rotate([0, 90, 0])
-                    cylinder(r=hr, h=knuckle_w - tol, center=true);
+                    cylinder(r=hr, h=knuckle_w - 0.5, center=true);
                 }
             }
         }
 
-        // CONTINUOUS TEARDROP CHANNEL: Subtracted straight through the lid knuckles to house the base pin
+        // Continuous teardrop channel
         translate([0, 0, pin_z])
         teardrop_channel(bore_r, width + 10);
     }
