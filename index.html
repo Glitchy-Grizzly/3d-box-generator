@@ -556,4 +556,70 @@ module build_hinges() {
         }
     }
 
-    // LID KNUCKLES (
+    // LID KNUCKLES (Anchored strictly to Lid at positions -1, 1)
+    for(i = [-1, 1]) {
+        translate([i * knuckle_w, 0, pin_z]) {
+            difference() {
+                union() {
+                    // Lid stand/anchor block bridging from rear wall (+Y) to the knuckle center
+                    translate([-(knuckle_w - tol)/2, 0, -pin_z + height])
+                    cube([knuckle_w - tol, wall + gap/2, pin_z - height]);
+
+                    // Main outer barrel for lid knuckle
+                    translate([0, lid_rear_y/2, 0])
+                    rotate([0, 90, 0])
+                    cylinder(r=hr, h=knuckle_w - tol, center=true);
+                }
+
+                // 3D-Printable Teardrop bore hole providing 0.3mm clearance around inner pin
+                teardrop(pin_r, knuckle_w + 1);
+            }
+        }
+    }
+}
+
+main();
+`;
+        }
+
+        function downloadSCAD() {
+            const width = document.getElementById('width').value;
+            const length = document.getElementById('length').value;
+            const height = document.getElementById('height').value;
+            const rawText = document.getElementById('customText').value;
+
+            const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
+            const tempId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            const filename = `${safeText}_${width}x${length}x${height}_${tempId}.scad`;
+
+            const blob = new Blob([currentScadCode], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => input.addEventListener('input', updateModel));
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        updateModel();
+        animate();
+    </script>
+</body>
+</html>
