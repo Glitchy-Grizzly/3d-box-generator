@@ -523,45 +523,57 @@ module lid_box() {
 
 module build_hinges() {
     knuckle_w = width / 5;
-    hr = wall;               // Outer knuckle radius (2.0mm)
-    pin_r = 1.0;             // Solid inner pin radius
-    bore_r = pin_r + tol;    // Clearance bore hole radius (1.3mm)
-    pin_z = height + hr;     // Center axis elevated perfectly above the box rim
+    hr = wall;               // Outer knuckle radius
+    pin_r = 1.2;             // Inner pin radius
+    bore_r = pin_r + tol;    // Clearance hole radius (1.5mm)
+    pin_z = height + hr;     // Elevation above top edge
 
-    // BASE KNUCKLES (Positions -2, 0, 2: Anchored to Base wall)
+    // BASE KNUCKLES (Positions -2, 0, 2)
     for(i = [-2, 0, 2]) {
         translate([i * knuckle_w, 0, pin_z]) {
-            // Anchor bridge back to base wall (-Y)
+            // Anchor bridge strictly on Base side (-Y)
             translate([-(knuckle_w - tol)/2, -wall - gap/2, -pin_z + height])
             cube([knuckle_w - tol, wall, pin_z - height]);
 
-            // Base barrel
+            // Solid Base Knuckle Barrel
             rotate([0, 90, 0])
             cylinder(r=hr, h=knuckle_w - tol, center=true);
 
-            // Integrated inner pin extending continuously along X axis
+            // Left Pin Stub
+            translate([-(knuckle_w - tol)/2, 0, 0])
+            rotate([0, -90, 0])
+            cylinder(r1=pin_r, r2=pin_r - 0.3, h=1.5, $fn=30);
+
+            // Right Pin Stub
+            translate([(knuckle_w - tol)/2, 0, 0])
             rotate([0, 90, 0])
-            cylinder(r=pin_r, h=knuckle_w + tol*2, center=true);
+            cylinder(r1=pin_r, r2=pin_r - 0.3, h=1.5, $fn=30);
         }
     }
 
-    // LID KNUCKLES (Positions -1, 1: Anchored to Lid wall)
+    // LID KNUCKLES (Positions -1, 1)
     for(i = [-1, 1]) {
         translate([i * knuckle_w, 0, pin_z]) {
             difference() {
                 union() {
-                    // Anchor bridge back to lid wall (+Y)
+                    // Anchor bridge strictly on Lid side (+Y)
                     translate([-(knuckle_w - tol)/2, gap/2, -pin_z + height])
                     cube([knuckle_w - tol, wall, pin_z - height]);
 
-                    // Lid barrel
+                    // Solid Lid Knuckle Barrel
                     rotate([0, 90, 0])
                     cylinder(r=hr, h=knuckle_w - tol, center=true);
                 }
 
-                // Inner bore clearance hole for base pin
+                // Left Pin Socket Clearance
+                translate([-(knuckle_w - tol)/2 - 0.01, 0, 0])
                 rotate([0, 90, 0])
-                cylinder(r=bore_r, h=knuckle_w + 1, center=true);
+                cylinder(r=bore_r, h=2.0, $fn=30);
+
+                // Right Pin Socket Clearance
+                translate([(knuckle_w - tol)/2 + 0.01, 0, 0])
+                rotate([0, -90, 0])
+                cylinder(r=bore_r, h=2.0, $fn=30);
             }
         }
     }
