@@ -162,7 +162,7 @@
 
         <div class="control-group">
             <label>Custom Text</label>
-            <input type="text" id="customText" value="Edit Text - Leave Blank For No Text" placeholder="Top Lid Text">
+            <input type="text" id="customText" value="MY GAME" placeholder="Top Lid Text">
         </div>
         <div class="control-group">
             <label for="fontSelect">Font</label>
@@ -382,7 +382,6 @@
             // Hinge Knuckles in Three.js Preview
             const hingeRadius = wall;
             const knuckle_w = width / 5;
-            const bridgeLen = gap/2 + wall;
            
             for(let i of [-2, -1, 0, 1, 2]) {
                 const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, knuckle_w - 0.5, 16);
@@ -390,12 +389,6 @@
                 kMesh.rotation.z = Math.PI / 2;
                 kMesh.position.set(i * knuckle_w, 0, height);
                 boxGroup.add(kMesh);
-               
-                const anchorGeo = new THREE.BoxGeometry(knuckle_w - 0.5, bridgeLen, hingeRadius);
-                const anchorMesh = new THREE.Mesh(anchorGeo, material);
-                let yOffset = (i % 2 === 0) ? -bridgeLen/2 : bridgeLen/2;
-                anchorMesh.position.set(i * knuckle_w, yOffset, height - hingeRadius/2);
-                boxGroup.add(anchorMesh);
             }
 
             // Text Preview
@@ -435,7 +428,7 @@
         function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
             currentScadCode = `
 // Print-in-Place Hinged Box with Snap-Fit Latch
-// Auto-generated
+// PERFECTED OpenSCAD GEOMETRY
 
 width = ${w};
 length = ${l};
@@ -459,11 +452,12 @@ module main() {
         build_hinges();
     }
    
-    // Inlay Text (Sits securely inside the 0.6mm lid floor socket)
+    // TEXT INLAY: Extrudes 0.7mm total, sticking out exactly 0.1mm downwards.
+    // This perfectly prevents Z-fighting in preview and makes painting in Bambu Studio a 1-click fill!
     if (box_text != "") {
         color(text_color)
-        translate([0, length/2 + gap/2, 0])
-        linear_extrude(0.6)
+        translate([0, length/2 + gap/2, -0.1])
+        linear_extrude(0.7)
         mirror([1, 0, 0])
         text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
     }
@@ -472,8 +466,10 @@ module main() {
 module base_box() {
     union() {
         difference() {
+            // Main body
             translate([-width/2, -length/2, 0]) cube([width, length, height]);
            
+            // Internal compartments
             comp_w = (width - wall * (compX + 1)) / compX;
             comp_l = (length - wall * (compY + 1)) / compY;
            
@@ -487,9 +483,15 @@ module base_box() {
                     cube([comp_w, comp_l, height]);
                 }
             }
+            
+            // HINGE CLEARANCE CUTOUTS: Prevents lid barrels from touching the base box
+            for(i = [-1, 1]) {
+                translate([i * (width / 5), length/2 + gap/2, height])
+                cube([(width / 5) + gap, wall*4, wall*4], center=true);
+            }
         }
        
-        // Ramp Catch Wedge
+        // Ramp Catch Wedge (Front of base box)
         translate([-width/8, -length/2 - wall, height - wall*2])
         rotate([0, 90, 0])
         linear_extrude(width/4)
@@ -517,11 +519,17 @@ module lid_box() {
         // Hollow lid interior
         translate([-width/2 + wall, -length/2 + wall, wall])
         cube([width - wall*2, length - wall*2, height + 1]);
+        
+        // HINGE CLEARANCE CUTOUTS: Prevents base pins from touching lid box
+        for(i = [-2, 0, 2]) {
+            translate([i * (width / 5), -length/2 - gap/2, height])
+            cube([(width / 5) + gap, wall*4, wall*4], center=true);
+        }
        
-        // Cut out clean 0.6mm socket on bottom face for text inlay
+        // TEXT POCKET CUTOUT: Cuts a 0.6mm socket cleanly from the bottom up
         if (box_text != "") {
-            translate([0, 0, -0.1])
-            linear_extrude(0.7)
+            translate([0, 0, -1.0])
+            linear_extrude(1.6)
             mirror([1, 0, 0])
             text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
         }
@@ -543,28 +551,31 @@ module build_hinges() {
     pin_z = height;
     bridge_len = gap/2 + wall;
 
-    // BASE HINGE KNUCKLES (Anchored strictly to Base half)
+    // BASE HINGE KNUCKLES (Anchored safely into Base Box only)
     for(i = [-2, 0, 2]) {
         translate([i * knuckle_w, pin_y, pin_z]) {
+            // Teardrop pin
             teardrop(hr - tol, knuckle_w - tol);
             
-            // Solid anchor block bridging from center Y=0 to Base Wall
+            // Solid bridge crossing perfectly from Y=0 to the Base wall at Y = -gap/2 - wall
             translate([0, -bridge_len/2, -hr/2])
             cube([knuckle_w - tol, bridge_len, hr], center=true);
         }
     }
 
-    // LID HINGE KNUCKLES (Anchored strictly to Lid half)
+    // LID HINGE KNUCKLES (Anchored safely into Lid Box only)
     for(i = [-1, 1]) {
         translate([i * knuckle_w, pin_y, pin_z]) {
             difference() {
                 union() {
+                    // Outer barrel
                     rotate([0, 90, 0]) cylinder(r=hr, h=knuckle_w - tol, center=true);
                     
-                    // Solid anchor block bridging from center Y=0 to Lid Wall
+                    // Solid bridge crossing perfectly from Y=0 to the Lid wall at Y = gap/2 + wall
                     translate([0, bridge_len/2, -hr/2])
                     cube([knuckle_w - tol, bridge_len, hr], center=true);
                 }
+                // True clearance gap for the internal base pins
                 teardrop(hr + tol/2, knuckle_w + 1);
             }
         }
