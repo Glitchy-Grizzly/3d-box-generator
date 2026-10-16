@@ -575,9 +575,19 @@ module build_base_hinges() {
                     translate([-(k_span - k_tol)/2, -wall*1.5 - hinge_gap/2, -pin_z + height])
                     cube([k_span - k_tol, wall*1.5, pin_z - height]);
 
+                    // Relief chamfer facing opposite side
                     translate([-k_span, hinge_gap/2, -pin_z + height - 0.5])
                     rotate([45, 0, 0])
                     cube([k_span*2, wall*2, wall*2]);
+
+                    // FIRST LAYER ELEPHANT FOOT CHAMFER CUT (Bottom Z=0 Relief)
+                    translate([-k_span, -wall*2, -pin_z + height - 0.3])
+                    rotate([0, 45, 0])
+                    cube([wall, wall*4, wall]);
+
+                    translate([k_span - k_tol - 0.3, -wall*2, -pin_z + height - 0.3])
+                    rotate([0, 45, 0])
+                    cube([wall, wall*4, wall]);
                 }
 
                 rotate([0, 90, 0])
@@ -629,6 +639,15 @@ module build_lid_hinges() {
                         translate([-k_span, -hinge_gap/2 - wall*2, -pin_z + height - 0.5])
                         rotate([45, 0, 0])
                         cube([k_span*2, wall*2, wall*2]);
+
+                        // FIRST LAYER ELEPHANT FOOT CHAMFER CUT (Bottom Z=0 Relief)
+                        translate([-k_span, -wall*2, -pin_z + height - 0.3])
+                        rotate([0, 45, 0])
+                        cube([wall, wall*4, wall]);
+
+                        translate([k_span - k_tol - 0.3, -wall*2, -pin_z + height - 0.3])
+                        rotate([0, 45, 0])
+                        cube([wall, wall*4, wall]);
                     }
 
                     rotate([0, 90, 0])
