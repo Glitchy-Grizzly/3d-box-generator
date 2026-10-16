@@ -548,38 +548,38 @@ module lid_box() {
 module build_base_hinges() {
     num_k = (width < 80) ? 3 : 5;
     k_span = width / num_k;
-    hr = wall;               
-    pin_r = 1.0;             
+    hr = wall;               // 2.0mm outer knuckle radius
+    pin_r = 1.0;             // 1.0mm solid continuous pin radius (2.0mm diameter)
     pin_z = height + hr;     
     hinge_gap = 0.8;         
     k_tol = 0.8;             
 
     base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
 
-    for(i = base_indices) {
-        x_pos = i * k_span;
-        
-        translate([x_pos, 0, pin_z]) {
-            difference() {
-                translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
-                cube([k_span - k_tol, wall, pin_z - height]);
+    union() {
+        // 1. Base Outer Barrels
+        for(i = base_indices) {
+            x_pos = i * k_span;
+            
+            translate([x_pos, 0, pin_z]) {
+                difference() {
+                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
+                    cube([k_span - k_tol, wall, pin_z - height]);
 
-                translate([-k_span, -hinge_gap/2, pin_z - height - 0.5])
-                rotate([45, 0, 0])
-                cube([k_span*2, wall, wall]);
+                    translate([-k_span, -hinge_gap/2, pin_z - height - 0.5])
+                    rotate([45, 0, 0])
+                    cube([k_span*2, wall, wall]);
+                }
+
+                rotate([0, 90, 0])
+                cylinder(r=hr, h=k_span - k_tol, center=true);
             }
-
-            rotate([0, 90, 0])
-            cylinder(r=hr, h=k_span - k_tol, center=true);
-
-            translate([-(k_span - k_tol)/2 - 0.6, 0, 0])
-            rotate([0, 90, 0])
-            cylinder(r=pin_r, h=1.2, center=true);
-
-            translate([(k_span - k_tol)/2 + 0.6, 0, 0])
-            rotate([0, 90, 0])
-            cylinder(r=pin_r, h=1.2, center=true);
         }
+
+        // 2. CONTINUOUS SOLID PIN (Runs through ALL knuckles, including center)
+        translate([0, 0, pin_z])
+        rotate([0, 90, 0])
+        cylinder(r=pin_r, h=width - k_tol, center=true);
     }
 }
 
@@ -601,7 +601,7 @@ module build_lid_hinges() {
     k_span = width / num_k;
     hr = wall;               
     pin_r = 1.0;             
-    bore_r = pin_r + 0.45;   
+    bore_r = pin_r + 0.45;   // 1.45mm clearance bore around continuous pin
     pin_z = height + hr;     
     hinge_gap = 0.8;
     k_tol = 0.8;
@@ -618,7 +618,7 @@ module build_lid_hinges() {
                         translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z + height])
                         cube([k_span - k_tol, wall, pin_z - height]);
 
-                        translate([-k_span, hinge_gap/2 - wall + 0.5, pin_z - height - 0.5])
+                        translate([-knuckle_w, hinge_gap/2 - wall + 0.5, pin_z - height - 0.5])
                         rotate([45, 0, 0])
                         cube([k_span*2, wall, wall]);
                     }
@@ -627,6 +627,7 @@ module build_lid_hinges() {
                     cylinder(r=hr, h=k_span - k_tol, center=true);
                 }
 
+                // Teardrop bore cut out of lid knuckle to slide around the continuous pin
                 print_in_place_teardrop(bore_r, k_span + 1);
             }
         }
