@@ -405,15 +405,17 @@
 
             boxGroup.add(lidGroup);
 
-            // Hinge Knuckles Preview
+            // Dynamic Three.js Hinge Preview matching OpenSCAD logic
             const hingeRadius = wall;
-            const knuckle_w = width / 5;
+            const knuckle_w = Math.max(12, width / 5);
+            const knuckle_indices = (width < 80) ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
            
-            for(let i of [-2, -1, 0, 1, 2]) {
-                const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, knuckle_w - 0.5, 16);
+            for(let i of knuckle_indices) {
+                const x_pos = (width < 80) ? (i * (width/3.5)) : (i * knuckle_w);
+                const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, knuckle_w - 0.8, 16);
                 const kMesh = new THREE.Mesh(kGeo, hingeMaterial);
                 kMesh.rotation.z = Math.PI / 2;
-                kMesh.position.set(i * knuckle_w, 0, height + hingeRadius);
+                kMesh.position.set(x_pos, 0, height + hingeRadius);
                 boxGroup.add(kMesh);
             }
 
@@ -543,20 +545,17 @@ module lid_box() {
 }
 
 module build_base_hinges() {
-    // Enforce a minimum knuckle length of 12mm so small boxes don't get tiny weak knuckles
     knuckle_w = max(12, width / 5);
-    hr = wall;               // 2.0mm outer radius
-    pin_r = 1.0;             // 1.0mm pin radius
+    hr = wall;               
+    pin_r = 1.0;             
     pin_z = height + hr;     
     hinge_gap = 0.8;         
     k_tol = 0.8;             
 
-    // For very small boxes, use 3 knuckles total [-1, 0, 1] instead of 5 [-2, -1, 0, 1, 2]
     knuckle_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
 
     for(i = knuckle_indices) {
-        // Recenter spacing on small boxes
-        x_pos = (width < 80) ? (i * (width/3)) : (i * knuckle_w);
+        x_pos = (width < 80) ? (i * (width/3.5)) : (i * knuckle_w);
         
         translate([x_pos, 0, pin_z]) {
             difference() {
@@ -571,7 +570,6 @@ module build_base_hinges() {
             rotate([0, 90, 0])
             cylinder(r=hr, h=knuckle_w - k_tol, center=true);
 
-            // Pin Stubs
             translate([-(knuckle_w - k_tol)/2 - 0.6, 0, 0])
             rotate([0, 90, 0])
             cylinder(r=pin_r, h=1.2, center=true);
