@@ -405,14 +405,15 @@
 
             boxGroup.add(lidGroup);
 
-            // Dynamic Three.js Hinge Preview matching OpenSCAD logic
+            // Dynamic Three.js Hinge Preview with zero gaps
             const hingeRadius = wall;
-            const knuckle_w = Math.max(12, width / 5);
-            const knuckle_indices = (width < 80) ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
+            const num_k = (width < 80) ? 3 : 5;
+            const k_span = width / num_k;
+            const all_indices = (width < 80) ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
            
-            for(let i of knuckle_indices) {
-                const x_pos = (width < 80) ? (i * (width/3.5)) : (i * knuckle_w);
-                const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, knuckle_w - 0.8, 16);
+            for(let i of all_indices) {
+                const x_pos = i * k_span;
+                const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, k_span - 0.8, 16);
                 const kMesh = new THREE.Mesh(kGeo, hingeMaterial);
                 kMesh.rotation.z = Math.PI / 2;
                 kMesh.position.set(x_pos, 0, height + hingeRadius);
@@ -545,36 +546,37 @@ module lid_box() {
 }
 
 module build_base_hinges() {
-    knuckle_w = max(12, width / 5);
+    num_k = (width < 80) ? 3 : 5;
+    k_span = width / num_k;
     hr = wall;               
     pin_r = 1.0;             
     pin_z = height + hr;     
     hinge_gap = 0.8;         
     k_tol = 0.8;             
 
-    knuckle_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
+    base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
 
-    for(i = knuckle_indices) {
-        x_pos = (width < 80) ? (i * (width/3.5)) : (i * knuckle_w);
+    for(i = base_indices) {
+        x_pos = i * k_span;
         
         translate([x_pos, 0, pin_z]) {
             difference() {
-                translate([-(knuckle_w - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
-                cube([knuckle_w - k_tol, wall, pin_z - height]);
+                translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
+                cube([k_span - k_tol, wall, pin_z - height]);
 
-                translate([-knuckle_w, -hinge_gap/2, pin_z - height - 0.5])
+                translate([-k_span, -hinge_gap/2, pin_z - height - 0.5])
                 rotate([45, 0, 0])
-                cube([knuckle_w*2, wall, wall]);
+                cube([k_span*2, wall, wall]);
             }
 
             rotate([0, 90, 0])
-            cylinder(r=hr, h=knuckle_w - k_tol, center=true);
+            cylinder(r=hr, h=k_span - k_tol, center=true);
 
-            translate([-(knuckle_w - k_tol)/2 - 0.6, 0, 0])
+            translate([-(k_span - k_tol)/2 - 0.6, 0, 0])
             rotate([0, 90, 0])
             cylinder(r=pin_r, h=1.2, center=true);
 
-            translate([(knuckle_w - k_tol)/2 + 0.6, 0, 0])
+            translate([(k_span - k_tol)/2 + 0.6, 0, 0])
             rotate([0, 90, 0])
             cylinder(r=pin_r, h=1.2, center=true);
         }
@@ -595,7 +597,8 @@ module build_lid_hinges() {
         ]);
     }
 
-    knuckle_w = max(12, width / 5);
+    num_k = (width < 80) ? 3 : 5;
+    k_span = width / num_k;
     hr = wall;               
     pin_r = 1.0;             
     bore_r = pin_r + 0.45;   
@@ -603,28 +606,28 @@ module build_lid_hinges() {
     hinge_gap = 0.8;
     k_tol = 0.8;
 
-    knuckle_indices = (width < 80) ? [0] : [-1, 1];
+    lid_indices = (width < 80) ? [0] : [-1, 1];
 
-    for(i = knuckle_indices) {
-        x_pos = (width < 80) ? 0 : (i * knuckle_w);
+    for(i = lid_indices) {
+        x_pos = i * k_span;
 
         translate([x_pos, 0, pin_z]) {
             difference() {
                 union() {
                     difference() {
-                        translate([-(knuckle_w - k_tol)/2, hinge_gap/2, -pin_z + height])
-                        cube([knuckle_w - k_tol, wall, pin_z - height]);
+                        translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z + height])
+                        cube([k_span - k_tol, wall, pin_z - height]);
 
-                        translate([-knuckle_w, hinge_gap/2 - wall + 0.5, pin_z - height - 0.5])
+                        translate([-k_span, hinge_gap/2 - wall + 0.5, pin_z - height - 0.5])
                         rotate([45, 0, 0])
-                        cube([knuckle_w*2, wall, wall]);
+                        cube([k_span*2, wall, wall]);
                     }
 
                     rotate([0, 90, 0])
-                    cylinder(r=hr, h=knuckle_w - k_tol, center=true);
+                    cylinder(r=hr, h=k_span - k_tol, center=true);
                 }
 
-                print_in_place_teardrop(bore_r, knuckle_w + 1);
+                print_in_place_teardrop(bore_r, k_span + 1);
             }
         }
     }
