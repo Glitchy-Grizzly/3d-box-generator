@@ -571,17 +571,13 @@ module build_base_hinges() {
             x_pos = i * k_span;
             
             translate([x_pos, 0, pin_z]) {
-                difference() {
-                    translate([-(k_span - k_tol)/2, -wall*1.5 - hinge_gap/2, -pin_z + height])
-                    cube([k_span - k_tol, wall*1.5, pin_z - height]);
+                hull() {
+                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
+                    cube([k_span - k_tol, wall, pin_z - height]);
 
-                    translate([-k_span, -hinge_gap/2, -pin_z + height - 0.5])
-                    rotate([45, 0, 0])
-                    cube([k_span*2, wall*2, wall*2]);
+                    rotate([0, 90, 0])
+                    cylinder(r=hr, h=k_span - k_tol, center=true);
                 }
-
-                rotate([0, 90, 0])
-                cylinder(r=hr, h=k_span - k_tol, center=true);
             }
         }
 
@@ -621,15 +617,9 @@ module build_lid_hinges() {
 
         translate([x_pos, 0, pin_z]) {
             difference() {
-                union() {
-                    difference() {
-                        translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z + height])
-                        cube([k_span - k_tol, wall*1.5, pin_z - height]);
-
-                        translate([-k_span, hinge_gap/2 - wall*1.5, -pin_z + height - 0.5])
-                        rotate([45, 0, 0])
-                        cube([k_span*2, wall*2, wall*2]);
-                    }
+                hull() {
+                    translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z + height])
+                    cube([k_span - k_tol, wall, pin_z - height]);
 
                     rotate([0, 90, 0])
                     cylinder(r=hr, h=k_span - k_tol, center=true);
