@@ -359,7 +359,7 @@
                 roughness: 0.2
             });
 
-            const gap = 1.0;
+            const gap = 1.6;
 
             // Base Box Half
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
@@ -416,18 +416,18 @@
            
             for(let i of all_indices) {
                 const x_pos = i * k_span;
-                const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, k_span - 1.0, 16);
+                const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, k_span - 0.35, 16);
                 const kMesh = new THREE.Mesh(kGeo, material);
                 kMesh.rotation.z = Math.PI / 2;
-                kMesh.position.set(x_pos, 0, height + hingeRadius);
+                kMesh.position.set(x_pos, 0, height + hingeRadius + 0.4);
                 boxGroup.add(kMesh);
             }
 
             // Continuous Axis Pin Representation
-            const pinGeo = new THREE.CylinderGeometry(1.0, 1.0, width - 1.0, 16);
+            const pinGeo = new THREE.CylinderGeometry(1.0, 1.0, width - 0.35, 16);
             const pinMesh = new THREE.Mesh(pinGeo, pinMaterial);
             pinMesh.rotation.z = Math.PI / 2;
-            pinMesh.position.set(0, 0, height + hingeRadius);
+            pinMesh.position.set(0, 0, height + hingeRadius + 0.4);
             boxGroup.add(pinMesh);
 
             // Text Preview
@@ -560,9 +560,9 @@ module build_base_hinges() {
     k_span = width / num_k;
     hr = wall;               
     pin_r = 1.0;             
-    pin_z = height + hr;     
-    hinge_gap = 1.0;         
-    k_tol = 1.0;             
+    pin_z = height + hr + 0.4; 
+    hinge_gap = 1.6;         
+    k_tol = 0.35;             
 
     base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
 
@@ -575,17 +575,15 @@ module build_base_hinges() {
                     translate([-(k_span - k_tol)/2, -wall*1.5 - hinge_gap/2, -pin_z + height])
                     cube([k_span - k_tol, wall*1.5, pin_z - height]);
 
-                    // Relief chamfer facing opposite side
                     translate([-k_span, hinge_gap/2, -pin_z + height - 0.5])
                     rotate([45, 0, 0])
                     cube([k_span*2, wall*2, wall*2]);
 
-                    // FIRST LAYER ELEPHANT FOOT CHAMFER CUT (Bottom Z=0 Relief)
-                    translate([-k_span, -wall*2, -pin_z + height - 0.3])
+                    translate([-(k_span - k_tol)/2 - 0.2, -wall*2, -pin_z + height - 0.2])
                     rotate([0, 45, 0])
                     cube([wall, wall*4, wall]);
 
-                    translate([k_span - k_tol - 0.3, -wall*2, -pin_z + height - 0.3])
+                    translate([(k_span - k_tol)/2 - wall + 0.2, -wall*2, -pin_z + height - 0.2])
                     rotate([0, 45, 0])
                     cube([wall, wall*4, wall]);
                 }
@@ -608,9 +606,9 @@ module build_lid_hinges() {
         polygon([
             [0, -r],         
             [r, 0],          
-            [0.4*r, 1.05*r], 
+            [0.35*r, 1.05*r], 
             [0, 1.15*r],     
-            [-0.4*r, 1.05*r],
+            [-0.35*r, 1.05*r],
             [-r, 0]          
         ]);
     }
@@ -619,10 +617,10 @@ module build_lid_hinges() {
     k_span = width / num_k;
     hr = wall;               
     pin_r = 1.0;             
-    bore_r = pin_r + 0.45;   
-    pin_z = height + hr;     
-    hinge_gap = 1.0;
-    k_tol = 1.0;
+    bore_r = pin_r + 0.35;   
+    pin_z = height + hr + 0.4;
+    hinge_gap = 1.6;
+    k_tol = 0.35;
 
     lid_indices = (width < 80) ? [0] : [-1, 1];
 
@@ -640,12 +638,11 @@ module build_lid_hinges() {
                         rotate([45, 0, 0])
                         cube([k_span*2, wall*2, wall*2]);
 
-                        // FIRST LAYER ELEPHANT FOOT CHAMFER CUT (Bottom Z=0 Relief)
-                        translate([-k_span, -wall*2, -pin_z + height - 0.3])
+                        translate([-(k_span - k_tol)/2 - 0.2, -wall*2, -pin_z + height - 0.2])
                         rotate([0, 45, 0])
                         cube([wall, wall*4, wall]);
 
-                        translate([k_span - k_tol - 0.3, -wall*2, -pin_z + height - 0.3])
+                        translate([(k_span - k_tol)/2 - wall + 0.2, -wall*2, -pin_z + height - 0.2])
                         rotate([0, 45, 0])
                         cube([wall, wall*4, wall]);
                     }
@@ -677,8 +674,7 @@ main();
 
             const blob = new Blob([currentScadCode], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
+            const a = document.href = url;
             a.download = filename;
             document.body.appendChild(a);
             a.click();
