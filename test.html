@@ -561,7 +561,7 @@ module build_base_hinges() {
     hr = wall;               
     pin_r = 1.0;             
     pin_z = height + hr;     
-    hinge_gap = 1.5;         
+    hinge_gap = 1.0;         
     k_tol = 1.0;             
 
     base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
@@ -572,10 +572,10 @@ module build_base_hinges() {
             
             translate([x_pos, 0, pin_z]) {
                 difference() {
-                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
-                    cube([k_span - k_tol, wall, pin_z - height]);
+                    translate([-(k_span - k_tol)/2, -wall*1.5 - hinge_gap/2, -pin_z + height])
+                    cube([k_span - k_tol, wall*1.5, pin_z - height]);
 
-                    translate([-k_span, -hinge_gap/2 - wall/2, -pin_z + height - 0.5])
+                    translate([-k_span, hinge_gap/2, -pin_z + height - 0.5])
                     rotate([45, 0, 0])
                     cube([k_span*2, wall*2, wall*2]);
                 }
@@ -609,9 +609,9 @@ module build_lid_hinges() {
     k_span = width / num_k;
     hr = wall;               
     pin_r = 1.0;             
-    bore_r = pin_r + 0.55;   
+    bore_r = pin_r + 0.45;   
     pin_z = height + hr;     
-    hinge_gap = 1.5;
+    hinge_gap = 1.0;
     k_tol = 1.0;
 
     lid_indices = (width < 80) ? [0] : [-1, 1];
@@ -623,10 +623,10 @@ module build_lid_hinges() {
             difference() {
                 union() {
                     difference() {
-                        translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z + height])
-                        cube([k_span - k_tol, wall, pin_z - height]);
+                        translate([-(k_span - k_tol)/2, 0, -pin_z + height])
+                        cube([k_span - k_tol, wall*1.5 + hinge_gap/2, pin_z - height]);
 
-                        translate([-k_span, hinge_gap/2 - wall/2, -pin_z + height - 0.5])
+                        translate([-k_span, -hinge_gap/2 - wall*2, -pin_z + height - 0.5])
                         rotate([45, 0, 0])
                         cube([k_span*2, wall*2, wall*2]);
                     }
