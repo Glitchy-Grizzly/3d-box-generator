@@ -543,15 +543,22 @@ module lid_box() {
 }
 
 module build_base_hinges() {
-    knuckle_w = width / 5;
-    hr = wall;               
-    pin_r = 1.0;             
+    // Enforce a minimum knuckle length of 12mm so small boxes don't get tiny weak knuckles
+    knuckle_w = max(12, width / 5);
+    hr = wall;               // 2.0mm outer radius
+    pin_r = 1.0;             // 1.0mm pin radius
     pin_z = height + hr;     
     hinge_gap = 0.8;         
     k_tol = 0.8;             
 
-    for(i = [-2, 0, 2]) {
-        translate([i * knuckle_w, 0, pin_z]) {
+    // For very small boxes, use 3 knuckles total [-1, 0, 1] instead of 5 [-2, -1, 0, 1, 2]
+    knuckle_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
+
+    for(i = knuckle_indices) {
+        // Recenter spacing on small boxes
+        x_pos = (width < 80) ? (i * (width/3)) : (i * knuckle_w);
+        
+        translate([x_pos, 0, pin_z]) {
             difference() {
                 translate([-(knuckle_w - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
                 cube([knuckle_w - k_tol, wall, pin_z - height]);
@@ -564,6 +571,7 @@ module build_base_hinges() {
             rotate([0, 90, 0])
             cylinder(r=hr, h=knuckle_w - k_tol, center=true);
 
+            // Pin Stubs
             translate([-(knuckle_w - k_tol)/2 - 0.6, 0, 0])
             rotate([0, 90, 0])
             cylinder(r=pin_r, h=1.2, center=true);
@@ -589,7 +597,7 @@ module build_lid_hinges() {
         ]);
     }
 
-    knuckle_w = width / 5;
+    knuckle_w = max(12, width / 5);
     hr = wall;               
     pin_r = 1.0;             
     bore_r = pin_r + 0.45;   
@@ -597,8 +605,12 @@ module build_lid_hinges() {
     hinge_gap = 0.8;
     k_tol = 0.8;
 
-    for(i = [-1, 1]) {
-        translate([i * knuckle_w, 0, pin_z]) {
+    knuckle_indices = (width < 80) ? [0] : [-1, 1];
+
+    for(i = knuckle_indices) {
+        x_pos = (width < 80) ? 0 : (i * knuckle_w);
+
+        translate([x_pos, 0, pin_z]) {
             difference() {
                 union() {
                     difference() {
