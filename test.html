@@ -575,17 +575,9 @@ module build_base_hinges() {
                     translate([-(k_span - k_tol)/2, -wall*1.5 - hinge_gap/2, -pin_z + height])
                     cube([k_span - k_tol, wall*1.5, pin_z - height]);
 
-                    translate([-k_span, hinge_gap/2, -pin_z + height - 0.5])
+                    translate([-k_span, -hinge_gap/2, -pin_z + height - 0.5])
                     rotate([45, 0, 0])
                     cube([k_span*2, wall*2, wall*2]);
-
-                    translate([-(k_span - k_tol)/2 - 0.2, -wall*2, -pin_z + height - 0.2])
-                    rotate([0, 45, 0])
-                    cube([wall, wall*4, wall]);
-
-                    translate([(k_span - k_tol)/2 - wall + 0.2, -wall*2, -pin_z + height - 0.2])
-                    rotate([0, 45, 0])
-                    cube([wall, wall*4, wall]);
                 }
 
                 rotate([0, 90, 0])
@@ -631,20 +623,12 @@ module build_lid_hinges() {
             difference() {
                 union() {
                     difference() {
-                        translate([-(k_span - k_tol)/2, 0, -pin_z + height])
-                        cube([k_span - k_tol, wall*1.5 + hinge_gap/2, pin_z - height]);
+                        translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z + height])
+                        cube([k_span - k_tol, wall*1.5, pin_z - height]);
 
-                        translate([-k_span, -hinge_gap/2 - wall*2, -pin_z + height - 0.5])
+                        translate([-k_span, hinge_gap/2 - wall*1.5, -pin_z + height - 0.5])
                         rotate([45, 0, 0])
                         cube([k_span*2, wall*2, wall*2]);
-
-                        translate([-(k_span - k_tol)/2 - 0.2, -wall*2, -pin_z + height - 0.2])
-                        rotate([0, 45, 0])
-                        cube([wall, wall*4, wall]);
-
-                        translate([(k_span - k_tol)/2 - wall + 0.2, -wall*2, -pin_z + height - 0.2])
-                        rotate([0, 45, 0])
-                        cube([wall, wall*4, wall]);
                     }
 
                     rotate([0, 90, 0])
