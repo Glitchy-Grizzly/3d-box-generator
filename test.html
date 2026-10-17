@@ -311,7 +311,7 @@
         function createWedgeMesh(w, l, h, wall, mat) {
             const armW = w / 4;
             const latch_hole = armW - 2 * wall;
-            const w_span = Math.max(8.0, latch_hole - 4.0); // 2mm clearance on both left and right
+            const w_span = Math.max(8.0, latch_hole - 4.0); // 2mm side clearance on left and right
 
             const x_min = -w_span / 2;
             const x_max =  w_span / 2;
@@ -411,23 +411,25 @@
             const lidGroup = buildBoxHalf(width, length, height, wall, 1, 1, material);
             lidGroup.position.set(0, length/2 + gap/2, 0);
            
+            // Open Window Latch Frame Construction
             const latchGroup = new THREE.Group();
             const armW = width / 4;
             const armT = wall;
+            const armH = 8.0; // Total arm height extending above top rim
            
-            const armLow = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, height), material);
-            armLow.position.set(0, 0, height/2);
-            latchGroup.add(armLow);
-           
-            const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, wall*2), material);
-            strutL.position.set(-armW/2 + wall/2, 0, height + wall);
+            // Left Vertical Flex Strut
+            const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
+            strutL.position.set(-armW/2 + wall/2, 0, height + armH/2 - 1.5);
             latchGroup.add(strutL);
-            const strutR = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, wall*2), material);
-            strutR.position.set(armW/2 - wall/2, 0, height + wall);
+
+            // Right Vertical Flex Strut
+            const strutR = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
+            strutR.position.set(armW/2 - wall/2, 0, height + armH/2 - 1.5);
             latchGroup.add(strutR);
            
-            const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, wall), material);
-            cap.position.set(0, 0, height + wall*2.5);
+            // Horizontal Snap Crossbar (Tip)
+            const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, 2.5), material);
+            cap.position.set(0, 0, height + armH - 1.25);
             latchGroup.add(cap);
            
             latchGroup.position.set(0, length/2 + armT/2, 0);
@@ -587,6 +589,7 @@ module base_box() {
 module lid_box() {
     armW = width / 4;
     armT = wall;
+    armH = 8.0;
 
     difference() {
         union() {
@@ -603,11 +606,14 @@ module lid_box() {
                 }
             }
            
+            // Open Window Latch Frame Construction
             translate([0, length/2, 0]) {
-                translate([-armW/2, 0, 0]) cube([armW, armT, height]);
-                translate([-armW/2, 0, height]) cube([wall, armT, wall*2]);
-                translate([armW/2 - wall, 0, height]) cube([wall, armT, wall*2]);
-                translate([-armW/2, 0, height + wall*2]) cube([armW, armT, wall]);
+                // Left Vertical Flex Strut
+                translate([-armW/2, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
+                // Right Vertical Flex Strut
+                translate([armW/2 - wall, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
+                // Horizontal Snap Crossbar (Tip)
+                translate([-armW/2, 0, height + armH - 2.5]) cube([armW, armT, 2.5]);
             }
         }
        
