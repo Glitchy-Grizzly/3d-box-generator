@@ -365,18 +365,17 @@
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
             baseGroup.position.set(0, -length/2 - gap/2, 0);
            
-            // Catch Ramp Wedge on Front Outer Wall
+            // Catch Ramp Wedge protruding OUTWARD on Outer Front Wall (-Y direction)
             const wedgeShape = new THREE.Shape();
-            wedgeShape.moveTo(0, height);
-            wedgeShape.lineTo(wall * 1.2, height - 3.0);
-            wedgeShape.lineTo(0, height - 3.0);
+            wedgeShape.moveTo(-length/2, height);                            // Top edge at wall surface
+            wedgeShape.lineTo(-length/2 - wall * 1.2, height - 3.0);         // Outer tip extending OUTWARD (-Y)
+            wedgeShape.lineTo(-length/2, height - 3.0);                     // Flat undercut back to wall surface
             wedgeShape.closePath();
 
-            const wedgeGeo = new THREE.ExtrudeGeometry(wedgeShape, { depth: width/5, bevelEnabled: false });
+            const wedgeGeo = new THREE.ExtrudeGeometry(wedgeShape, { depth: width / 5, bevelEnabled: false });
             const wedge = new THREE.Mesh(wedgeGeo, material);
-            wedge.rotation.x = Math.PI / 2;
             wedge.rotation.y = Math.PI / 2;
-            wedge.position.set(-width/10, -length/2, 0);
+            wedge.position.set(width / 10, 0, 0);
             baseGroup.add(wedge);
            
             boxGroup.add(baseGroup);
@@ -521,7 +520,7 @@ module base_box() {
             }
         }
        
-        // Corrected Catch Ramp Wedge on Front Outer Wall Face
+        // Catch Ramp Wedge on Front Outer Wall Face (Extends Outward in -Y)
         translate([0, -length/2, 0])
         rotate([90, 0, 90])
         linear_extrude(height=width/5, center=true)
