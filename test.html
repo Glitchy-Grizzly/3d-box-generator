@@ -415,7 +415,7 @@
             const latchGroup = new THREE.Group();
             const armW = Math.max(16.0, width / 4.0);
             const armT = 1.8;  
-            const armH = 5.8;  // Perfectly proportioned height to catch beneath wedge
+            const armH = 5.8;  
 
             // Left Vertical Strut
             const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
@@ -443,7 +443,7 @@
             boxGroup.add(lidGroup);
 
             // Three.js Hinge Visualizer
-            const hingeRadius = wall + 0.4;
+            const hingeRadius = wall;
             const num_k = (width < 80) ? 3 : 5;
             const k_span = width / num_k;
             const all_indices = (width < 80) ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
@@ -518,7 +518,7 @@ font_style = "${font}:style=Bold";
 
 num_k = (width < 80) ? 3 : 5;
 k_span = width / num_k;
-hr = wall + 0.4;         // 2.4mm outer knuckle radius
+hr = wall;               // 2.0mm radius full round knuckle barrel
 k_tol = 0.35;             
 
 module main() {
@@ -557,7 +557,7 @@ module base_box() {
                 }
             }
 
-            // Cutout relief slots for Lid Knuckles
+            // Compact relief slots for Lid Knuckles
             lid_indices = (width < 80) ? [0] : [-1, 1];
             for(i = lid_indices) {
                 x_pos = i * k_span;
@@ -602,7 +602,7 @@ module lid_box() {
             difference() {
                 translate([-width/2, -length/2, 0]) cube([width, length, height]);
                 
-                // Cutout relief slots for Base Knuckles
+                // Compact relief slots for Base Knuckles
                 base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
                 for(i = base_indices) {
                     x_pos = i * k_span;
@@ -680,18 +680,12 @@ module build_base_hinges() {
             x_pos = i * k_span;
             
             translate([x_pos, 0, pin_z]) {
-                difference() {
-                    hull() {
-                        translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -gusset_h])
-                        cube([k_span - k_tol, wall, gusset_h]);
+                hull() {
+                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -gusset_h])
+                    cube([k_span - k_tol, wall, gusset_h]);
 
-                        rotate([0, 90, 0])
-                        cylinder(r=hr, h=k_span - k_tol, center=true);
-                    }
-
-                    // Strict split plane cutter at Y = -0.1mm (Prevents 90-degree swing collisions)
-                    translate([-width, -0.1, -pin_z - 1])
-                    cube([width*2, wall*5, pin_z*2 + 2]);
+                    rotate([0, 90, 0])
+                    cylinder(r=hr, h=k_span - k_tol, center=true);
                 }
             }
         }
@@ -728,18 +722,12 @@ module build_lid_hinges() {
 
         translate([x_pos, 0, pin_z]) {
             difference() {
-                difference() {
-                    hull() {
-                        translate([-(k_span - k_tol)/2, hinge_gap/2, -gusset_h])
-                        cube([k_span - k_tol, wall, gusset_h]);
+                hull() {
+                    translate([-(k_span - k_tol)/2, hinge_gap/2, -gusset_h])
+                    cube([k_span - k_tol, wall, gusset_h]);
 
-                        rotate([0, 90, 0])
-                        cylinder(r=hr, h=k_span - k_tol, center=true);
-                    }
-
-                    // Strict split plane cutter at Y = +0.1mm (Prevents 90-degree swing collisions)
-                    translate([-width, -wall*5 + 0.1, -pin_z - 1])
-                    cube([width*2, wall*5, pin_z*2 + 2]);
+                    rotate([0, 90, 0])
+                    cylinder(r=hr, h=k_span - k_tol, center=true);
                 }
 
                 print_in_place_teardrop(bore_r, k_span + 1);
