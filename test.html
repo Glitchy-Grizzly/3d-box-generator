@@ -432,7 +432,7 @@
 
             boxGroup.add(lidGroup);
 
-            // Three.js Hinge & Pin Visualizer
+            // Three.js Hinge Visualizer
             const hingeRadius = wall + 0.4;
             const num_k = (width < 80) ? 3 : 5;
             const k_span = width / num_k;
@@ -506,6 +506,11 @@ text_color = "${textHex}";
 box_text = "${text}";
 font_style = "${font}:style=Bold";
 
+num_k = (width < 80) ? 3 : 5;
+k_span = width / num_k;
+hr = wall + 0.4;         // 2.4mm outer radius for strong knuckle barrel
+k_tol = 0.35;             
+
 module main() {
     color(box_color) {
         translate([0, -length/2 - gap/2, 0]) base_box();
@@ -541,6 +546,15 @@ module base_box() {
                     cube([comp_w, comp_l, height]);
                 }
             }
+
+            // Cutout relief slots for Lid Knuckles so barrels don't fuse into the wall
+            lid_indices = (width < 80) ? [0] : [-1, 1];
+            for(i = lid_indices) {
+                x_pos = i * k_span;
+                translate([x_pos, length/2, height])
+                rotate([0, 90, 0])
+                cylinder(r=hr + k_tol, h=k_span + k_tol*2, center=true);
+            }
         }
        
         w_span = width / 5;
@@ -570,7 +584,18 @@ module lid_box() {
 
     difference() {
         union() {
-            translate([-width/2, -length/2, 0]) cube([width, length, height]);
+            difference() {
+                translate([-width/2, -length/2, 0]) cube([width, length, height]);
+                
+                // Cutout relief slots for Base Knuckles so barrels don't fuse into the wall
+                base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
+                for(i = base_indices) {
+                    x_pos = i * k_span;
+                    translate([x_pos, -length/2, height])
+                    rotate([0, 90, 0])
+                    cylinder(r=hr + k_tol, h=k_span + k_tol*2, center=true);
+                }
+            }
            
             translate([0, length/2, 0]) {
                 translate([-armW/2, 0, 0]) cube([armW, armT, height]);
@@ -593,14 +618,10 @@ module lid_box() {
 }
 
 module build_base_hinges() {
-    num_k = (width < 80) ? 3 : 5;
-    k_span = width / num_k;
-    hr = wall + 0.4;         // 2.4mm outer radius for strong knuckle barrel
     pin_r = 1.05;            
     pin_z = height;          
     hinge_gap = gap;         
-    k_tol = 0.35;             
-    gusset_h = 3.6;          // Compact 3.6mm gusset at the rim (prevents wall ramp)
+    gusset_h = 3.6;          
 
     base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
 
@@ -609,19 +630,12 @@ module build_base_hinges() {
             x_pos = i * k_span;
             
             translate([x_pos, 0, pin_z]) {
-                difference() {
-                    hull() {
-                        // Compact support block at top rim only
-                        translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -gusset_h])
-                        cube([k_span - k_tol, wall, gusset_h]);
+                hull() {
+                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -gusset_h])
+                    cube([k_span - k_tol, wall, gusset_h]);
 
-                        rotate([0, 90, 0])
-                        cylinder(r=hr, h=k_span - k_tol, center=true);
-                    }
-
-                    // Strict Y-axis cutter: prevents base knuckle from crossing Y = +0.2mm
-                    translate([-width, 0.2, -pin_z - 1])
-                    cube([width*2, wall*5, pin_z*2 + 2]);
+                    rotate([0, 90, 0])
+                    cylinder(r=hr, h=k_span - k_tol, center=true);
                 }
             }
         }
@@ -646,15 +660,10 @@ module build_lid_hinges() {
         }
     }
 
-    num_k = (width < 80) ? 3 : 5;
-    k_span = width / num_k;
-    hr = wall + 0.4;         // 2.4mm outer radius
-    pin_r = 1.05;             
     bore_r = 1.4;            
     pin_z = height;          
     hinge_gap = gap;
-    k_tol = 0.35;
-    gusset_h = 3.6;          // Compact 3.6mm gusset at the rim
+    gusset_h = 3.6;          
 
     lid_indices = (width < 80) ? [0] : [-1, 1];
 
@@ -663,19 +672,12 @@ module build_lid_hinges() {
 
         translate([x_pos, 0, pin_z]) {
             difference() {
-                difference() {
-                    hull() {
-                        // Compact support block at top rim only
-                        translate([-(k_span - k_tol)/2, hinge_gap/2, -gusset_h])
-                        cube([k_span - k_tol, wall, gusset_h]);
+                hull() {
+                    translate([-(k_span - k_tol)/2, hinge_gap/2, -gusset_h])
+                    cube([k_span - k_tol, wall, gusset_h]);
 
-                        rotate([0, 90, 0])
-                        cylinder(r=hr, h=k_span - k_tol, center=true);
-                    }
-
-                    // Strict Y-axis cutter: prevents lid knuckle from crossing Y = -0.2mm
-                    translate([-width, -wall*5 - 0.2, -pin_z - 1])
-                    cube([width*2, wall*5, pin_z*2 + 2]);
+                    rotate([0, 90, 0])
+                    cylinder(r=hr, h=k_span - k_tol, center=true);
                 }
 
                 print_in_place_teardrop(bore_r, k_span + 1);
