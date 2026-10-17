@@ -423,8 +423,8 @@
                 boxGroup.add(kMesh);
             }
 
-            // Continuous Axis Pin Representation
-            const pinGeo = new THREE.CylinderGeometry(1.0, 1.0, width - 0.35, 16);
+            // Continuous Axis Pin Representation (0.9mm radius = 1.8mm dia pin)
+            const pinGeo = new THREE.CylinderGeometry(0.9, 0.9, width - 0.35, 16);
             const pinMesh = new THREE.Mesh(pinGeo, pinMaterial);
             pinMesh.rotation.z = Math.PI / 2;
             pinMesh.position.set(0, 0, height + hingeRadius + 0.4);
@@ -559,7 +559,7 @@ module build_base_hinges() {
     num_k = (width < 80) ? 3 : 5;
     k_span = width / num_k;
     hr = wall;               
-    pin_r = 1.0;             
+    pin_r = 0.9;             // 0.9mm solid pin radius (1.8mm dia continuous axis)
     pin_z = height + hr + 0.4; 
     hinge_gap = 1.6;         
     k_tol = 0.35;             
@@ -591,21 +591,21 @@ module build_lid_hinges() {
     module print_in_place_teardrop(r, h) {
         rotate([0, 90, 0])
         linear_extrude(h, center=true)
-        polygon([
-            [0, -r],         
-            [r, 0],          
-            [0.35*r, 1.05*r], 
-            [0, 1.15*r],     
-            [-0.35*r, 1.05*r],
-            [-r, 0]          
-        ]);
+        union() {
+            circle(r=r, $fn=30);
+            polygon([
+                [-r * 0.707, r * 0.707],
+                [0, r * 1.5],
+                [r * 0.707, r * 0.707]
+            ]);
+        }
     }
 
     num_k = (width < 80) ? 3 : 5;
     k_span = width / num_k;
     hr = wall;               
-    pin_r = 1.0;             
-    bore_r = pin_r + 0.35;   
+    pin_r = 0.9;             // 0.9mm pin
+    bore_r = 1.4;            // 1.4mm bore channel (0.50mm RADIAL GAP for zero fusion)
     pin_z = height + hr + 0.4;
     hinge_gap = 1.6;
     k_tol = 0.35;
