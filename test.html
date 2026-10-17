@@ -309,7 +309,10 @@
         }
 
         function createWedgeMesh(w, l, h, wall, mat) {
-            const w_span = w / 5;
+            const armW = w / 4;
+            const latch_hole = armW - 2 * wall;
+            const w_span = Math.max(8.0, latch_hole - 4.0); // 2mm clearance on both left and right
+
             const x_min = -w_span / 2;
             const x_max =  w_span / 2;
             const y_wall = -l / 2;
@@ -547,7 +550,7 @@ module base_box() {
                 }
             }
 
-            // Cutout relief slots for Lid Knuckles so barrels don't fuse into the wall
+            // Cutout relief slots for Lid Knuckles
             lid_indices = (width < 80) ? [0] : [-1, 1];
             for(i = lid_indices) {
                 x_pos = i * k_span;
@@ -557,7 +560,10 @@ module base_box() {
             }
         }
        
-        w_span = width / 5;
+        armW = width / 4;
+        latch_hole = armW - 2 * wall;
+        w_span = max(8.0, latch_hole - 4.0); // 2mm side clearance inside latch opening
+
         polyhedron(
             points = [
                 [-w_span/2, -length/2, height],               
@@ -587,7 +593,7 @@ module lid_box() {
             difference() {
                 translate([-width/2, -length/2, 0]) cube([width, length, height]);
                 
-                // Cutout relief slots for Base Knuckles so barrels don't fuse into the wall
+                // Cutout relief slots for Base Knuckles
                 base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
                 for(i = base_indices) {
                     x_pos = i * k_span;
