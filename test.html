@@ -318,30 +318,19 @@
             const z_bot  = h - 3.0;
 
             const vertices = new Float32Array([
-                // 0: top-left wall
                 x_min, y_wall, z_top,
-                // 1: top-right wall
                 x_max, y_wall, z_top,
-                // 2: bot-left wall
                 x_min, y_wall, z_bot,
-                // 3: bot-right wall
                 x_max, y_wall, z_bot,
-                // 4: bot-left tip (outward overhang)
                 x_min, y_tip,  z_bot,
-                // 5: bot-right tip (outward overhang)
                 x_max, y_tip,  z_bot,
             ]);
 
             const indices = [
-                // Back face (against wall)
                 0, 2, 1,   1, 2, 3,
-                // Bottom undercut face (horizontal, facing down)
                 2, 4, 3,   3, 4, 5,
-                // Sloped ramp face
                 0, 1, 4,   1, 5, 4,
-                // Left end cap
                 0, 4, 2,
-                // Right end cap
                 1, 3, 5
             ];
 
@@ -404,13 +393,12 @@
                 roughness: 0.2
             });
 
-            const gap = 1.6;
+            const gap = 2.4; // 2.4mm gap between box halves for zero collision
 
             // Base Box Half
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
             baseGroup.position.set(0, -length/2 - gap/2, 0);
            
-            // Catch Ramp Wedge on Front Outer Wall Face
             const wedgeMesh = createWedgeMesh(width, length, height, wall, material);
             baseGroup.add(wedgeMesh);
            
@@ -459,7 +447,6 @@
                 boxGroup.add(kMesh);
             }
 
-            // Continuous Axis Pin Representation (1.05mm radius = 2.1mm dia pin)
             const pinGeo = new THREE.CylinderGeometry(1.05, 1.05, width - 0.35, 16);
             const pinMesh = new THREE.Mesh(pinGeo, pinMaterial);
             pinMesh.rotation.z = Math.PI / 2;
@@ -556,23 +543,22 @@ module base_box() {
             }
         }
        
-        // Explicit 3D Catch Ramp Wedge on Front Outer Wall
         w_span = width / 5;
         polyhedron(
             points = [
-                [-w_span/2, -length/2, height],               // 0: top-left wall
-                [ w_span/2, -length/2, height],               // 1: top-right wall
-                [-w_span/2, -length/2, height - 3.0],         // 2: bot-left wall
-                [ w_span/2, -length/2, height - 3.0],         // 3: bot-right wall
-                [-w_span/2, -length/2 - wall*1.2, height - 3.0], // 4: bot-left tip (outward overhang)
-                [ w_span/2, -length/2 - wall*1.2, height - 3.0]  // 5: bot-right tip (outward overhang)
+                [-w_span/2, -length/2, height],               
+                [ w_span/2, -length/2, height],               
+                [-w_span/2, -length/2, height - 3.0],         
+                [ w_span/2, -length/2, height - 3.0],         
+                [-w_span/2, -length/2 - wall*1.2, height - 3.0],
+                [ w_span/2, -length/2 - wall*1.2, height - 3.0] 
             ],
             faces = [
-                [0, 1, 3, 2], // Back face (against wall)
-                [2, 3, 5, 4], // Bottom undercut face (horizontal, facing down)
-                [0, 4, 5, 1], // Sloped ramp face
-                [0, 2, 4],    // Left end cap
-                [1, 5, 3]     // Right end cap
+                [0, 1, 3, 2],
+                [2, 3, 5, 4],
+                [0, 4, 5, 1],
+                [0, 2, 4],   
+                [1, 5, 3]    
             ]
         );
     }
@@ -610,9 +596,9 @@ module build_base_hinges() {
     num_k = (width < 80) ? 3 : 5;
     k_span = width / num_k;
     hr = wall;               
-    pin_r = 1.05;            // 1.05mm radius pin (0.35mm radial clearance inside 1.4mm bore)
-    pin_z = height;          // Hinge axis placed at rim height for 100% flush closing
-    hinge_gap = 1.6;         
+    pin_r = 1.05;            
+    pin_z = height;          
+    hinge_gap = gap;         
     k_tol = 0.35;             
 
     base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
@@ -622,12 +608,18 @@ module build_base_hinges() {
             x_pos = i * k_span;
             
             translate([x_pos, 0, pin_z]) {
-                hull() {
-                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z])
-                    cube([k_span - k_tol, wall, pin_z]);
+                difference() {
+                    hull() {
+                        translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z])
+                        cube([k_span - k_tol, wall, pin_z]);
 
-                    rotate([0, 90, 0])
-                    cylinder(r=hr, h=k_span - k_tol, center=true);
+                        rotate([0, 90, 0])
+                        cylinder(r=hr, h=k_span - k_tol, center=true);
+                    }
+
+                    // Strict Y-axis cutter: prevents base knuckle from crossing Y = +0.2mm
+                    translate([-width, 0.2, -pin_z - 1])
+                    cube([width*2, wall*5, pin_z*2 + 2]);
                 }
             }
         }
@@ -656,9 +648,9 @@ module build_lid_hinges() {
     k_span = width / num_k;
     hr = wall;               
     pin_r = 1.05;             
-    bore_r = 1.4;            // 1.4mm bore (0.35mm radial clearance around 1.05mm pin)
-    pin_z = height;          // Hinge axis placed at rim height
-    hinge_gap = 1.6;
+    bore_r = 1.4;            
+    pin_z = height;          
+    hinge_gap = gap;
     k_tol = 0.35;
 
     lid_indices = (width < 80) ? [0] : [-1, 1];
@@ -668,12 +660,18 @@ module build_lid_hinges() {
 
         translate([x_pos, 0, pin_z]) {
             difference() {
-                hull() {
-                    translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z])
-                    cube([k_span - k_tol, wall, pin_z]);
+                difference() {
+                    hull() {
+                        translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z])
+                        cube([k_span - k_tol, wall, pin_z]);
 
-                    rotate([0, 90, 0])
-                    cylinder(r=hr, h=k_span - k_tol, center=true);
+                        rotate([0, 90, 0])
+                        cylinder(r=hr, h=k_span - k_tol, center=true);
+                    }
+
+                    // Strict Y-axis cutter: prevents lid knuckle from crossing Y = -0.2mm
+                    translate([-width, -wall*5 - 0.2, -pin_z - 1])
+                    cube([width*2, wall*5, pin_z*2 + 2]);
                 }
 
                 print_in_place_teardrop(bore_r, k_span + 1);
