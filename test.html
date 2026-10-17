@@ -393,7 +393,7 @@
                 roughness: 0.2
             });
 
-            const gap = 2.4; // 2.4mm gap between box halves for zero collision
+            const gap = 2.4; 
 
             // Base Box Half
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
@@ -433,7 +433,7 @@
             boxGroup.add(lidGroup);
 
             // Three.js Hinge & Pin Visualizer
-            const hingeRadius = wall;
+            const hingeRadius = wall + 0.4;
             const num_k = (width < 80) ? 3 : 5;
             const k_span = width / num_k;
             const all_indices = (width < 80) ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
@@ -595,11 +595,12 @@ module lid_box() {
 module build_base_hinges() {
     num_k = (width < 80) ? 3 : 5;
     k_span = width / num_k;
-    hr = wall;               
+    hr = wall + 0.4;         // 2.4mm outer radius for strong knuckle barrel
     pin_r = 1.05;            
     pin_z = height;          
     hinge_gap = gap;         
     k_tol = 0.35;             
+    gusset_h = 3.6;          // Compact 3.6mm gusset at the rim (prevents wall ramp)
 
     base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
 
@@ -610,8 +611,9 @@ module build_base_hinges() {
             translate([x_pos, 0, pin_z]) {
                 difference() {
                     hull() {
-                        translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z])
-                        cube([k_span - k_tol, wall, pin_z]);
+                        // Compact support block at top rim only
+                        translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -gusset_h])
+                        cube([k_span - k_tol, wall, gusset_h]);
 
                         rotate([0, 90, 0])
                         cylinder(r=hr, h=k_span - k_tol, center=true);
@@ -637,21 +639,22 @@ module build_lid_hinges() {
         union() {
             circle(r=r, $fn=30);
             polygon([
-                [-r * 0.707, r * 0.707],
-                [0, r * 1.5],
-                [r * 0.707, r * 0.707]
+                [-r * 0.7071, r * 0.7071],
+                [0, r * 1.35],               // Apex at 1.89mm: leaves 0.51mm solid plastic roof
+                [r * 0.7071, r * 0.7071]
             ]);
         }
     }
 
     num_k = (width < 80) ? 3 : 5;
     k_span = width / num_k;
-    hr = wall;               
+    hr = wall + 0.4;         // 2.4mm outer radius
     pin_r = 1.05;             
     bore_r = 1.4;            
     pin_z = height;          
     hinge_gap = gap;
     k_tol = 0.35;
+    gusset_h = 3.6;          // Compact 3.6mm gusset at the rim
 
     lid_indices = (width < 80) ? [0] : [-1, 1];
 
@@ -662,8 +665,9 @@ module build_lid_hinges() {
             difference() {
                 difference() {
                     hull() {
-                        translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z])
-                        cube([k_span - k_tol, wall, pin_z]);
+                        // Compact support block at top rim only
+                        translate([-(k_span - k_tol)/2, hinge_gap/2, -gusset_h])
+                        cube([k_span - k_tol, wall, gusset_h]);
 
                         rotate([0, 90, 0])
                         cylinder(r=hr, h=k_span - k_tol, center=true);
