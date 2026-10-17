@@ -71,10 +71,10 @@
             color: var(--neon);
             font-weight: bold;
         }
-        button.etsy-btn {
+        button {
             width: 100%;
             padding: 12px;
-            background-color: #f1641e;
+            background-color: var(--neon);
             color: white;
             border: none;
             border-radius: 4px;
@@ -82,6 +82,13 @@
             font-weight: bold;
             cursor: pointer;
             transition: background 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #ff5c77;
+        }
+        button.etsy-btn {
+            background-color: #f1641e;
             margin-top: 15px;
         }
         button.etsy-btn:hover {
@@ -155,8 +162,8 @@
         </div>
 
         <div class="control-group">
-            <label>Custom Text</label>
-            <input type="text" id="customText" value="MY GAME" placeholder="Top Lid Text">
+            <label>Custom Text Leave Blank For None</label>
+            <input type="text" id="customText" value="" placeholder="Top Lid Text">
         </div>
         <div class="control-group">
             <label for="fontSelect">Font</label>
@@ -173,6 +180,7 @@
             <div id="recommendedTier" style="font-size: 1.1rem; font-weight: bold; color: var(--neon);">Small Box (0 cm³)</div>
         </div>
 
+        
         <button class="etsy-btn" onclick="saveBoxAndRedirect()">Order Custom Box on Etsy</button>
     </div>
 
@@ -183,12 +191,12 @@
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
+            apiKey: "AIzaSyB1aOZeIwyhVEb4D2sRimetbjDJhbeZRqI",
+            authDomain: "print-in-place-boxes.firebaseapp.com",
+            projectId: "print-in-place-boxes",
+            storageBucket: "print-in-place-boxes.firebasestorage.app",
+            messagingSenderId: "282832338212",
+            appId: "1:282832338212:web:817f6b6906ca93aafa87b1"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -300,6 +308,43 @@
             return group;
         }
 
+        function createWedgeMesh(w, l, h, wall, mat) {
+            const armW = Math.max(16.0, w / 4.0);
+            const latch_hole = armW - 2 * wall;
+            const w_span = latch_hole - 4.0; // Strictly 2.0mm side margin on each side
+
+            const x_min = -w_span / 2;
+            const x_max =  w_span / 2;
+            const y_wall = -l / 2;
+            const y_tip  = -l / 2 - wall * 1.2;
+            const z_top  = h;
+            const z_bot  = h - 3.0;
+
+            const vertices = new Float32Array([
+                x_min, y_wall, z_top,
+                x_max, y_wall, z_top,
+                x_min, y_wall, z_bot,
+                x_max, y_wall, z_bot,
+                x_min, y_tip,  z_bot,
+                x_max, y_tip,  z_bot,
+            ]);
+
+            const indices = [
+                0, 2, 1,   1, 2, 3,
+                2, 4, 3,   3, 4, 5,
+                0, 1, 4,   1, 5, 4,
+                0, 4, 2,
+                1, 3, 5
+            ];
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            geo.setIndex(indices);
+            geo.computeVertexNormals();
+
+            return new THREE.Mesh(geo, mat);
+        }
+
         function updateModel() {
             const width = parseFloat(document.getElementById('width').value);
             const length = parseFloat(document.getElementById('length').value);
@@ -346,26 +391,20 @@
                 roughness: 0.4,
                 metalness: 0.1
             });
-            const hingeMaterial = material;
+            const pinMaterial = new THREE.MeshStandardMaterial({
+                color: 0x333333,
+                roughness: 0.2
+            });
 
-            const gap = 0.5;
+            // Reduced hinge gap to 1.2mm for tight flush closure
+            const gap = 1.2; 
 
             // Base Box Half
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
             baseGroup.position.set(0, -length/2 - gap/2, 0);
            
-            const wedgeShape = new THREE.Shape();
-            wedgeShape.moveTo(0, 0);
-            wedgeShape.lineTo(wall * 1.2, 0);
-            wedgeShape.lineTo(0, wall * 1.2);
-            wedgeShape.closePath();
-
-            const wedgeGeo = new THREE.ExtrudeGeometry(wedgeShape, { depth: width/5, bevelEnabled: false });
-            const wedge = new THREE.Mesh(wedgeGeo, material);
-            wedge.rotation.x = Math.PI / 2;
-            wedge.rotation.y = Math.PI / 2;
-            wedge.position.set(-width/10, -length/2 - wall/2, height - wall * 1.5);
-            baseGroup.add(wedge);
+            const wedgeMesh = createWedgeMesh(width, length, height, wall, material);
+            baseGroup.add(wedgeMesh);
            
             boxGroup.add(baseGroup);
 
@@ -373,23 +412,25 @@
             const lidGroup = buildBoxHalf(width, length, height, wall, 1, 1, material);
             lidGroup.position.set(0, length/2 + gap/2, 0);
            
+            // Tight Latch Arm Construction with 5.0mm height and 2.5mm heavy struts
             const latchGroup = new THREE.Group();
-            const armW = width / 4;
-            const armT = wall;
+            const armW = Math.max(16.0, width / 4.0);
+            const armT = 2.5; 
+            const armH = 5.0; // Tight snap height matching wedge overhang
            
-            const armLow = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, height), material);
-            armLow.position.set(0, 0, height/2);
-            latchGroup.add(armLow);
-           
-            const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, wall*2), material);
-            strutL.position.set(-armW/2 + wall/2, 0, height + wall);
+            // Left Vertical Strut
+            const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
+            strutL.position.set(-armW/2 + wall/2, 0, height + armH/2 - 1.5);
             latchGroup.add(strutL);
-            const strutR = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, wall*2), material);
-            strutR.position.set(armW/2 - wall/2, 0, height + wall);
+
+            // Right Vertical Strut
+            const strutR = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
+            strutR.position.set(armW/2 - wall/2, 0, height + armH/2 - 1.5);
             latchGroup.add(strutR);
            
-            const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, wall), material);
-            cap.position.set(0, 0, height + wall*2.5);
+            // Horizontal Snap Crossbar
+            const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, 2.0), material);
+            cap.position.set(0, 0, height + armH - 1.0);
             latchGroup.add(cap);
            
             latchGroup.position.set(0, length/2 + armT/2, 0);
@@ -397,17 +438,26 @@
 
             boxGroup.add(lidGroup);
 
-            // Hinge Knuckles Preview
-            const hingeRadius = wall;
-            const knuckle_w = width / 5;
+            // Three.js Hinge Visualizer
+            const hingeRadius = wall + 0.4;
+            const num_k = (width < 80) ? 3 : 5;
+            const k_span = width / num_k;
+            const all_indices = (width < 80) ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
            
-            for(let i of [-2, -1, 0, 1, 2]) {
-                const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, knuckle_w - 0.5, 16);
-                const kMesh = new THREE.Mesh(kGeo, hingeMaterial);
+            for(let i of all_indices) {
+                const x_pos = i * k_span;
+                const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, k_span - 0.35, 16);
+                const kMesh = new THREE.Mesh(kGeo, material);
                 kMesh.rotation.z = Math.PI / 2;
-                kMesh.position.set(i * knuckle_w, 0, height + hingeRadius);
+                kMesh.position.set(x_pos, 0, height);
                 boxGroup.add(kMesh);
             }
+
+            const pinGeo = new THREE.CylinderGeometry(1.05, 1.05, width - 0.35, 16);
+            const pinMesh = new THREE.Mesh(pinGeo, pinMaterial);
+            pinMesh.rotation.z = Math.PI / 2;
+            pinMesh.position.set(0, 0, height);
+            boxGroup.add(pinMesh);
 
             // Text Preview
             if(customText) {
@@ -454,13 +504,18 @@ height = ${h};
 wall = ${wall};
 compX = ${cx};
 compY = ${cy};
-gap = ${gap};
+gap = ${gap};  // Tightened 1.2mm printing gap
 $fn = 60;
 
 box_color = "${boxHex}";
 text_color = "${textHex}";
 box_text = "${text}";
 font_style = "${font}:style=Bold";
+
+num_k = (width < 80) ? 3 : 5;
+k_span = width / num_k;
+hr = wall + 0.4;         // 2.4mm outer radius for strong knuckle barrel
+k_tol = 0.35;             
 
 module main() {
     color(box_color) {
@@ -497,28 +552,99 @@ module base_box() {
                     cube([comp_w, comp_l, height]);
                 }
             }
+
+            // Cutout relief slots for Lid Knuckles
+            lid_indices = (width < 80) ? [0] : [-1, 1];
+            for(i = lid_indices) {
+                x_pos = i * k_span;
+                translate([x_pos, length/2, height])
+                rotate([0, 90, 0])
+                cylinder(r=hr + k_tol, h=k_span + k_tol*2, center=true);
+            }
         }
        
-        translate([-width/10, -length/2 - wall, height - wall*1.5])
-        rotate([0, 90, 0])
-        linear_extrude(width/5)
-        polygon([[0,0], [wall*1.2, 0], [0, wall*1.2]]);
+        armW = max(16.0, width / 4.0);
+        latch_hole = armW - 2 * wall;
+        w_span = latch_hole - 4.0; // Guaranteed 2.0mm margin per side
+
+        polyhedron(
+            points = [
+                [-w_span/2, -length/2, height],               
+                [ w_span/2, -length/2, height],               
+                [-w_span/2, -length/2, height - 3.0],         
+                [ w_span/2, -length/2, height - 3.0],         
+                [-w_span/2, -length/2 - wall*1.2, height - 3.0],
+                [ w_span/2, -length/2 - wall*1.2, height - 3.0] 
+            ],
+            faces = [
+                [0, 1, 3, 2],
+                [2, 3, 5, 4],
+                [0, 4, 5, 1],
+                [0, 2, 4],   
+                [1, 5, 3]    
+            ]
+        );
     }
 }
 
 module lid_box() {
-    armW = width / 4;
-    armT = wall;
+    armW = max(16.0, width / 4.0);
+    armT = 2.5;  // 2.5mm heavy strut depth to prevent layer snapping
+    armH = 5.0;  // Tightened 5.0mm latch height matching 3.0mm wedge notch
 
     difference() {
         union() {
-            translate([-width/2, -length/2, 0]) cube([width, length, height]);
+            difference() {
+                translate([-width/2, -length/2, 0]) cube([width, length, height]);
+                
+                // Cutout relief slots for Base Knuckles
+                base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
+                for(i = base_indices) {
+                    x_pos = i * k_span;
+                    translate([x_pos, -length/2, height])
+                    rotate([0, 90, 0])
+                    cylinder(r=hr + k_tol, h=k_span + k_tol*2, center=true);
+                }
+            }
            
+            // Unbreakable Latch Frame with Root Gusset Reinforcements
             translate([0, length/2, 0]) {
-                translate([-armW/2, 0, 0]) cube([armW, armT, height]);
-                translate([-armW/2, 0, height]) cube([wall, armT, wall*2]);
-                translate([armW/2 - wall, 0, height]) cube([wall, armT, wall*2]);
-                translate([-armW/2, 0, height + wall*2]) cube([armW, armT, wall]);
+                // Left Strut
+                translate([-armW/2, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
+                // Right Strut
+                translate([armW/2 - wall, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
+                // Snap Crossbar
+                translate([-armW/2, 0, height + armH - 2.0]) cube([armW, armT, 2.0]);
+
+                // Left Root Fillet (45 deg angle)
+                polyhedron(
+                    points = [
+                        [-armW/2, 0, height - 3.0],
+                        [-armW/2 + wall, 0, height - 3.0],
+                        [-armW/2, armT*1.2, height - 3.0],
+                        [-armW/2 + wall, armT*1.2, height - 3.0],
+                        [-armW/2, 0, height + 2.0],
+                        [-armW/2 + wall, 0, height + 2.0]
+                    ],
+                    faces = [
+                        [0, 1, 3, 2], [2, 3, 5, 4], [0, 4, 5, 1], [0, 2, 4], [1, 5, 3]
+                    ]
+                );
+
+                // Right Root Fillet (45 deg angle)
+                polyhedron(
+                    points = [
+                        [armW/2 - wall, 0, height - 3.0],
+                        [armW/2, 0, height - 3.0],
+                        [armW/2 - wall, armT*1.2, height - 3.0],
+                        [armW/2, armT*1.2, height - 3.0],
+                        [armW/2 - wall, 0, height + 2.0],
+                        [armW/2, 0, height + 2.0]
+                    ],
+                    faces = [
+                        [0, 1, 3, 2], [2, 3, 5, 4], [0, 4, 5, 1], [0, 2, 4], [1, 5, 3]
+                    ]
+                );
             }
         }
        
@@ -535,73 +661,69 @@ module lid_box() {
 }
 
 module build_base_hinges() {
-    knuckle_w = width / 5;
-    hr = wall;               
-    pin_r = 1.0;             
-    pin_z = height + hr;     
-    hinge_gap = 0.8;         
-    k_tol = 0.8;             
+    pin_r = 1.05;            
+    pin_z = height;          
+    hinge_gap = gap;         
+    gusset_h = 3.6;          
 
-    for(i = [-2, 0, 2]) {
-        translate([i * knuckle_w, 0, pin_z]) {
-            difference() {
-                translate([-(knuckle_w - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
-                cube([knuckle_w - k_tol, wall, pin_z - height]);
+    base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
 
-                translate([-knuckle_w, -hinge_gap/2, pin_z - height - 0.5])
-                rotate([45, 0, 0])
-                cube([knuckle_w*2, wall, wall]);
+    union() {
+        for(i = base_indices) {
+            x_pos = i * k_span;
+            
+            translate([x_pos, 0, pin_z]) {
+                hull() {
+                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -gusset_h])
+                    cube([k_span - k_tol, wall, gusset_h]);
+
+                    rotate([0, 90, 0])
+                    cylinder(r=hr, h=k_span - k_tol, center=true);
+                }
             }
-
-            rotate([0, 90, 0])
-            cylinder(r=hr, h=knuckle_w - k_tol, center=true);
-
-            translate([-(knuckle_w - k_tol)/2 - 0.6, 0, 0])
-            rotate([0, 90, 0])
-            cylinder(r=pin_r, h=1.2, center=true);
-
-            translate([(knuckle_w - k_tol)/2 + 0.6, 0, 0])
-            rotate([0, 90, 0])
-            cylinder(r=pin_r, h=1.2, center=true);
         }
+
+        translate([0, 0, pin_z])
+        rotate([0, 90, 0])
+        cylinder(r=pin_r, h=width - k_tol, center=true);
     }
 }
 
 module build_lid_hinges() {
-    module teardrop_channel(r, h) {
+    module print_in_place_teardrop(r, h) {
         rotate([0, 90, 0])
         linear_extrude(h, center=true)
-        polygon([
-            [0, -r], [r, 0], [0, r], [-r*0.7, r*0.7], [-r*1.4, 0], [-r*0.7, -r*0.7]
-        ]);
+        union() {
+            circle(r=r, $fn=30);
+            polygon([
+                [-r * 0.7071, r * 0.7071],
+                [0, r * 1.35],               // Apex at 1.89mm: leaves 0.51mm solid plastic roof
+                [r * 0.7071, r * 0.7071]
+            ]);
+        }
     }
 
-    knuckle_w = width / 5;
-    hr = wall;               
-    pin_r = 1.0;             
-    bore_r = pin_r + 0.45;   
-    pin_z = height + hr;     
-    hinge_gap = 0.8;
-    k_tol = 0.8;
+    bore_r = 1.4;            
+    pin_z = height;          
+    hinge_gap = gap;
+    gusset_h = 3.6;          
 
-    for(i = [-1, 1]) {
-        translate([i * knuckle_w, 0, pin_z]) {
+    lid_indices = (width < 80) ? [0] : [-1, 1];
+
+    for(i = lid_indices) {
+        x_pos = i * k_span;
+
+        translate([x_pos, 0, pin_z]) {
             difference() {
-                union() {
-                    difference() {
-                        translate([-(knuckle_w - k_tol)/2, hinge_gap/2, -pin_z + height])
-                        cube([knuckle_w - k_tol, wall, pin_z - height]);
-
-                        translate([-knuckle_w, hinge_gap/2 - wall + 0.5, pin_z - height - 0.5])
-                        rotate([45, 0, 0])
-                        cube([knuckle_w*2, wall, wall]);
-                    }
+                hull() {
+                    translate([-(k_span - k_tol)/2, hinge_gap/2, -gusset_h])
+                    cube([k_span - k_tol, wall, gusset_h]);
 
                     rotate([0, 90, 0])
-                    cylinder(r=hr, h=knuckle_w - k_tol, center=true);
+                    cylinder(r=hr, h=k_span - k_tol, center=true);
                 }
 
-                teardrop_channel(bore_r, knuckle_w + 1);
+                print_in_place_teardrop(bore_r, k_span + 1);
             }
         }
     }
@@ -610,6 +732,27 @@ module build_lid_hinges() {
 main();
 `;
         }
+
+        window.downloadSCAD = function() {
+            const width = document.getElementById('width').value;
+            const length = document.getElementById('length').value;
+            const height = document.getElementById('height').value;
+            const rawText = document.getElementById('customText').value;
+
+            const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
+            const tempId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            const filename = `${safeText}_${width}x${length}x${height}_${tempId}.scad`;
+
+            const blob = new Blob([currentScadCode], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
 
         const inputs = document.querySelectorAll('input, select');
         inputs.forEach(input => input.addEventListener('input', updateModel));
