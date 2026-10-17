@@ -414,9 +414,9 @@
             // Flexible Spring Latch Construction with Thumb Release Tab
             const latchGroup = new THREE.Group();
             const armW = Math.max(16.0, width / 4.0);
-            const armT = 1.8;  // Resilient 1.8mm flex strut depth
-            const armH = 5.0;  // Snap height matching 3.0mm wedge notch
-           
+            const armT = 1.8;  
+            const armH = 5.8;  // Perfectly proportioned height to catch beneath wedge
+
             // Left Vertical Strut
             const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
             strutL.position.set(-armW/2 + wall/2, 0, height + armH/2 - 1.5);
@@ -571,7 +571,7 @@ module base_box() {
         latch_hole = armW - 2 * wall;
         w_span = latch_hole - 4.0; // Guaranteed 2.0mm margin per side
 
-        // Catch wedge with smooth 1.0mm protrusion for effortless snap
+        // Catch wedge with smooth 1.0mm protrusion
         polyhedron(
             points = [
                 [-w_span/2, -length/2, height],               
@@ -595,7 +595,7 @@ module base_box() {
 module lid_box() {
     armW = max(16.0, width / 4.0);
     armT = 1.8;  // 1.8mm resilient flex strut depth
-    armH = 5.0;  // 5.0mm latch height matching 3.0mm wedge notch
+    armH = 5.8;  // 5.8mm height for effortless snap-lock under wedge
 
     difference() {
         union() {
@@ -624,7 +624,7 @@ module lid_box() {
                 // Outward Thumb Release Lever Tab
                 translate([-(armW*0.7)/2, armT, height + armH - 1.8]) cube([armW*0.7, 1.8, 1.8]);
 
-                // Root Reinforcement Gusset (Prevents Layer Line Snapping)
+                // Root Reinforcement Gussets
                 polyhedron(
                     points = [
                         [-armW/2, 0, height - 3.0],
@@ -680,12 +680,18 @@ module build_base_hinges() {
             x_pos = i * k_span;
             
             translate([x_pos, 0, pin_z]) {
-                hull() {
-                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -gusset_h])
-                    cube([k_span - k_tol, wall, gusset_h]);
+                difference() {
+                    hull() {
+                        translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -gusset_h])
+                        cube([k_span - k_tol, wall, gusset_h]);
 
-                    rotate([0, 90, 0])
-                    cylinder(r=hr, h=k_span - k_tol, center=true);
+                        rotate([0, 90, 0])
+                        cylinder(r=hr, h=k_span - k_tol, center=true);
+                    }
+
+                    // Strict split plane cutter at Y = -0.1mm (Prevents 90-degree swing collisions)
+                    translate([-width, -0.1, -pin_z - 1])
+                    cube([width*2, wall*5, pin_z*2 + 2]);
                 }
             }
         }
@@ -722,12 +728,18 @@ module build_lid_hinges() {
 
         translate([x_pos, 0, pin_z]) {
             difference() {
-                hull() {
-                    translate([-(k_span - k_tol)/2, hinge_gap/2, -gusset_h])
-                    cube([k_span - k_tol, wall, gusset_h]);
+                difference() {
+                    hull() {
+                        translate([-(k_span - k_tol)/2, hinge_gap/2, -gusset_h])
+                        cube([k_span - k_tol, wall, gusset_h]);
 
-                    rotate([0, 90, 0])
-                    cylinder(r=hr, h=k_span - k_tol, center=true);
+                        rotate([0, 90, 0])
+                        cylinder(r=hr, h=k_span - k_tol, center=true);
+                    }
+
+                    // Strict split plane cutter at Y = +0.1mm (Prevents 90-degree swing collisions)
+                    translate([-width, -wall*5 + 0.1, -pin_z - 1])
+                    cube([width*2, wall*5, pin_z*2 + 2]);
                 }
 
                 print_in_place_teardrop(bore_r, k_span + 1);
