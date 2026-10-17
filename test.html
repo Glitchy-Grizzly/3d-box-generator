@@ -365,15 +365,16 @@
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
             baseGroup.position.set(0, -length/2 - gap/2, 0);
            
-            // Corrected Snap Catch Wedge (Slopes outward going down, flat undercut at bottom)
+            // Catch Ramp Wedge on Front Outer Wall
             const wedgeShape = new THREE.Shape();
             wedgeShape.moveTo(0, height);
-            wedgeShape.lineTo(-wall * 1.2, height - 3.0);
+            wedgeShape.lineTo(wall * 1.2, height - 3.0);
             wedgeShape.lineTo(0, height - 3.0);
             wedgeShape.closePath();
 
             const wedgeGeo = new THREE.ExtrudeGeometry(wedgeShape, { depth: width/5, bevelEnabled: false });
             const wedge = new THREE.Mesh(wedgeGeo, material);
+            wedge.rotation.x = Math.PI / 2;
             wedge.rotation.y = Math.PI / 2;
             wedge.position.set(-width/10, -length/2, 0);
             baseGroup.add(wedge);
@@ -520,11 +521,15 @@ module base_box() {
             }
         }
        
-        // Corrected Catch Ramp Wedge on Front Wall
-        translate([-width/10, -length/2, 0])
-        rotate([0, 90, 0])
-        linear_extrude(width/5)
-        polygon([[0, height], [-wall*1.2, height - 3.0], [0, height - 3.0]]);
+        // Corrected Catch Ramp Wedge on Front Outer Wall Face
+        translate([0, -length/2, 0])
+        rotate([90, 0, 90])
+        linear_extrude(height=width/5, center=true)
+        polygon([
+            [0, height],
+            [-wall*1.2, height - 3.0],
+            [0, height - 3.0]
+        ]);
     }
 }
 
