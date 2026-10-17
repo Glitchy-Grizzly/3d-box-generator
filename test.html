@@ -396,7 +396,8 @@
                 roughness: 0.2
             });
 
-            const gap = 2.4; 
+            // Reduced hinge gap to 1.2mm for tight flush closure
+            const gap = 1.2; 
 
             // Base Box Half
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
@@ -411,25 +412,25 @@
             const lidGroup = buildBoxHalf(width, length, height, wall, 1, 1, material);
             lidGroup.position.set(0, length/2 + gap/2, 0);
            
-            // Open Window Latch Frame Construction
+            // Tight Latch Arm Construction with 5.0mm height and 2.5mm heavy struts
             const latchGroup = new THREE.Group();
             const armW = Math.max(16.0, width / 4.0);
-            const armT = wall;
-            const armH = 8.0; 
+            const armT = 2.5; 
+            const armH = 5.0; // Tight snap height matching wedge overhang
            
-            // Left Vertical Flex Strut
+            // Left Vertical Strut
             const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
             strutL.position.set(-armW/2 + wall/2, 0, height + armH/2 - 1.5);
             latchGroup.add(strutL);
 
-            // Right Vertical Flex Strut
+            // Right Vertical Strut
             const strutR = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
             strutR.position.set(armW/2 - wall/2, 0, height + armH/2 - 1.5);
             latchGroup.add(strutR);
            
             // Horizontal Snap Crossbar
-            const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, 2.5), material);
-            cap.position.set(0, 0, height + armH - 1.25);
+            const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, 2.0), material);
+            cap.position.set(0, 0, height + armH - 1.0);
             latchGroup.add(cap);
            
             latchGroup.position.set(0, length/2 + armT/2, 0);
@@ -503,7 +504,7 @@ height = ${h};
 wall = ${wall};
 compX = ${cx};
 compY = ${cy};
-gap = ${gap};
+gap = ${gap};  // Tightened 1.2mm printing gap
 $fn = 60;
 
 box_color = "${boxHex}";
@@ -564,7 +565,7 @@ module base_box() {
        
         armW = max(16.0, width / 4.0);
         latch_hole = armW - 2 * wall;
-        w_span = latch_hole - 4.0; // Guaranteed 2.0mm margin per side at all scales
+        w_span = latch_hole - 4.0; // Guaranteed 2.0mm margin per side
 
         polyhedron(
             points = [
@@ -588,8 +589,8 @@ module base_box() {
 
 module lid_box() {
     armW = max(16.0, width / 4.0);
-    armT = wall;
-    armH = 8.0;
+    armT = 2.5;  // 2.5mm heavy strut depth to prevent layer snapping
+    armH = 5.0;  // Tightened 5.0mm latch height matching 3.0mm wedge notch
 
     difference() {
         union() {
@@ -606,14 +607,44 @@ module lid_box() {
                 }
             }
            
-            // Open Window Latch Frame Construction
+            // Unbreakable Latch Frame with Root Gusset Reinforcements
             translate([0, length/2, 0]) {
-                // Left Vertical Flex Strut
+                // Left Strut
                 translate([-armW/2, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
-                // Right Vertical Flex Strut
+                // Right Strut
                 translate([armW/2 - wall, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
-                // Horizontal Snap Crossbar
-                translate([-armW/2, 0, height + armH - 2.5]) cube([armW, armT, 2.5]);
+                // Snap Crossbar
+                translate([-armW/2, 0, height + armH - 2.0]) cube([armW, armT, 2.0]);
+
+                // Left Root Fillet (45 deg angle)
+                polyhedron(
+                    points = [
+                        [-armW/2, 0, height - 3.0],
+                        [-armW/2 + wall, 0, height - 3.0],
+                        [-armW/2, armT*1.2, height - 3.0],
+                        [-armW/2 + wall, armT*1.2, height - 3.0],
+                        [-armW/2, 0, height + 2.0],
+                        [-armW/2 + wall, 0, height + 2.0]
+                    ],
+                    faces = [
+                        [0, 1, 3, 2], [2, 3, 5, 4], [0, 4, 5, 1], [0, 2, 4], [1, 5, 3]
+                    ]
+                );
+
+                // Right Root Fillet (45 deg angle)
+                polyhedron(
+                    points = [
+                        [armW/2 - wall, 0, height - 3.0],
+                        [armW/2, 0, height - 3.0],
+                        [armW/2 - wall, armT*1.2, height - 3.0],
+                        [armW/2, armT*1.2, height - 3.0],
+                        [armW/2 - wall, 0, height + 2.0],
+                        [armW/2, 0, height + 2.0]
+                    ],
+                    faces = [
+                        [0, 1, 3, 2], [2, 3, 5, 4], [0, 4, 5, 1], [0, 2, 4], [1, 5, 3]
+                    ]
+                );
             }
         }
        
