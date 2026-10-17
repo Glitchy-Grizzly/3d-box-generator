@@ -311,12 +311,12 @@
         function createWedgeMesh(w, l, h, wall, mat) {
             const armW = Math.max(16.0, w / 4.0);
             const latch_hole = armW - 2 * wall;
-            const w_span = latch_hole - 4.0; // Strictly 2.0mm side margin on each side
+            const w_span = latch_hole - 4.0; // Guaranteed 2mm clearance per side
 
             const x_min = -w_span / 2;
             const x_max =  w_span / 2;
             const y_wall = -l / 2;
-            const y_tip  = -l / 2 - wall * 1.2;
+            const y_tip  = -l / 2 - 1.0; // Smooth 1.0mm protrusion
             const z_top  = h;
             const z_bot  = h - 3.0;
 
@@ -396,7 +396,6 @@
                 roughness: 0.2
             });
 
-            // Reduced hinge gap to 1.2mm for tight flush closure
             const gap = 1.2; 
 
             // Base Box Half
@@ -412,11 +411,11 @@
             const lidGroup = buildBoxHalf(width, length, height, wall, 1, 1, material);
             lidGroup.position.set(0, length/2 + gap/2, 0);
            
-            // Tight Latch Arm Construction with 5.0mm height and 2.5mm heavy struts
+            // Flexible Spring Latch Construction with Thumb Release Tab
             const latchGroup = new THREE.Group();
             const armW = Math.max(16.0, width / 4.0);
-            const armT = 2.5; 
-            const armH = 5.0; // Tight snap height matching wedge overhang
+            const armT = 1.8;  // Resilient 1.8mm flex strut depth
+            const armH = 5.0;  // Snap height matching 3.0mm wedge notch
            
             // Left Vertical Strut
             const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
@@ -432,6 +431,11 @@
             const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, 2.0), material);
             cap.position.set(0, 0, height + armH - 1.0);
             latchGroup.add(cap);
+
+            // Outward Thumb Release Tab
+            const tab = new THREE.Mesh(new THREE.BoxGeometry(armW * 0.7, 2.5, 1.8), material);
+            tab.position.set(0, 1.2, height + armH - 0.9);
+            latchGroup.add(tab);
            
             latchGroup.position.set(0, length/2 + armT/2, 0);
             lidGroup.add(latchGroup);
@@ -453,7 +457,7 @@
                 boxGroup.add(kMesh);
             }
 
-            const pinGeo = new THREE.CylinderGeometry(1.05, 1.05, width - 0.35, 16);
+            const pinGeo = new THREE.CylinderGeometry(0.95, 0.95, width - 0.35, 16);
             const pinMesh = new THREE.Mesh(pinGeo, pinMaterial);
             pinMesh.rotation.z = Math.PI / 2;
             pinMesh.position.set(0, 0, height);
@@ -504,7 +508,7 @@ height = ${h};
 wall = ${wall};
 compX = ${cx};
 compY = ${cy};
-gap = ${gap};  // Tightened 1.2mm printing gap
+gap = ${gap};  // 1.2mm printing gap for flush closed alignment
 $fn = 60;
 
 box_color = "${boxHex}";
@@ -514,7 +518,7 @@ font_style = "${font}:style=Bold";
 
 num_k = (width < 80) ? 3 : 5;
 k_span = width / num_k;
-hr = wall + 0.4;         // 2.4mm outer radius for strong knuckle barrel
+hr = wall + 0.4;         // 2.4mm outer knuckle radius
 k_tol = 0.35;             
 
 module main() {
@@ -567,14 +571,15 @@ module base_box() {
         latch_hole = armW - 2 * wall;
         w_span = latch_hole - 4.0; // Guaranteed 2.0mm margin per side
 
+        // Catch wedge with smooth 1.0mm protrusion for effortless snap
         polyhedron(
             points = [
                 [-w_span/2, -length/2, height],               
                 [ w_span/2, -length/2, height],               
                 [-w_span/2, -length/2, height - 3.0],         
                 [ w_span/2, -length/2, height - 3.0],         
-                [-w_span/2, -length/2 - wall*1.2, height - 3.0],
-                [ w_span/2, -length/2 - wall*1.2, height - 3.0] 
+                [-w_span/2, -length/2 - 1.0, height - 3.0],   
+                [ w_span/2, -length/2 - 1.0, height - 3.0]    
             ],
             faces = [
                 [0, 1, 3, 2],
@@ -589,8 +594,8 @@ module base_box() {
 
 module lid_box() {
     armW = max(16.0, width / 4.0);
-    armT = 2.5;  // 2.5mm heavy strut depth to prevent layer snapping
-    armH = 5.0;  // Tightened 5.0mm latch height matching 3.0mm wedge notch
+    armT = 1.8;  // 1.8mm resilient flex strut depth
+    armH = 5.0;  // 5.0mm latch height matching 3.0mm wedge notch
 
     difference() {
         union() {
@@ -607,39 +612,41 @@ module lid_box() {
                 }
             }
            
-            // Unbreakable Latch Frame with Root Gusset Reinforcements
+            // Spring-Loaded Latch Frame with Thumb Release Tab
             translate([0, length/2, 0]) {
-                // Left Strut
+                // Left Vertical Flex Strut
                 translate([-armW/2, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
-                // Right Strut
+                // Right Vertical Flex Strut
                 translate([armW/2 - wall, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
                 // Snap Crossbar
                 translate([-armW/2, 0, height + armH - 2.0]) cube([armW, armT, 2.0]);
 
-                // Left Root Fillet (45 deg angle)
+                // Outward Thumb Release Lever Tab
+                translate([-(armW*0.7)/2, armT, height + armH - 1.8]) cube([armW*0.7, 1.8, 1.8]);
+
+                // Root Reinforcement Gusset (Prevents Layer Line Snapping)
                 polyhedron(
                     points = [
                         [-armW/2, 0, height - 3.0],
                         [-armW/2 + wall, 0, height - 3.0],
                         [-armW/2, armT*1.2, height - 3.0],
                         [-armW/2 + wall, armT*1.2, height - 3.0],
-                        [-armW/2, 0, height + 2.0],
-                        [-armW/2 + wall, 0, height + 2.0]
+                        [-armW/2, 0, height + 1.5],
+                        [-armW/2 + wall, 0, height + 1.5]
                     ],
                     faces = [
                         [0, 1, 3, 2], [2, 3, 5, 4], [0, 4, 5, 1], [0, 2, 4], [1, 5, 3]
                     ]
                 );
 
-                // Right Root Fillet (45 deg angle)
                 polyhedron(
                     points = [
                         [armW/2 - wall, 0, height - 3.0],
                         [armW/2, 0, height - 3.0],
                         [armW/2 - wall, armT*1.2, height - 3.0],
                         [armW/2, armT*1.2, height - 3.0],
-                        [armW/2 - wall, 0, height + 2.0],
-                        [armW/2, 0, height + 2.0]
+                        [armW/2 - wall, 0, height + 1.5],
+                        [armW/2, 0, height + 1.5]
                     ],
                     faces = [
                         [0, 1, 3, 2], [2, 3, 5, 4], [0, 4, 5, 1], [0, 2, 4], [1, 5, 3]
@@ -661,7 +668,7 @@ module lid_box() {
 }
 
 module build_base_hinges() {
-    pin_r = 1.05;            
+    pin_r = 0.95;            // 0.95mm radius pin for smooth rotation clearance
     pin_z = height;          
     hinge_gap = gap;         
     gusset_h = 3.6;          
@@ -697,13 +704,13 @@ module build_lid_hinges() {
             circle(r=r, $fn=30);
             polygon([
                 [-r * 0.7071, r * 0.7071],
-                [0, r * 1.35],               // Apex at 1.89mm: leaves 0.51mm solid plastic roof
+                [0, r * 1.35],               // Apex at 1.95mm: leaves 0.45mm solid plastic roof
                 [r * 0.7071, r * 0.7071]
             ]);
         }
     }
 
-    bore_r = 1.4;            
+    bore_r = 1.45;           // 1.45mm bore radius for free-swinging pin clearance
     pin_z = height;          
     hinge_gap = gap;
     gusset_h = 3.6;          
