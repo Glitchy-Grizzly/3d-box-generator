@@ -365,17 +365,17 @@
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
             baseGroup.position.set(0, -length/2 - gap/2, 0);
            
+            // Corrected Snap Catch Wedge (Slopes outward going down, flat undercut at bottom)
             const wedgeShape = new THREE.Shape();
-            wedgeShape.moveTo(0, 0);
-            wedgeShape.lineTo(wall * 1.2, 0);
-            wedgeShape.lineTo(0, wall * 1.2);
+            wedgeShape.moveTo(0, height);
+            wedgeShape.lineTo(-wall * 1.2, height - 3.0);
+            wedgeShape.lineTo(0, height - 3.0);
             wedgeShape.closePath();
 
             const wedgeGeo = new THREE.ExtrudeGeometry(wedgeShape, { depth: width/5, bevelEnabled: false });
             const wedge = new THREE.Mesh(wedgeGeo, material);
-            wedge.rotation.x = Math.PI / 2;
             wedge.rotation.y = Math.PI / 2;
-            wedge.position.set(-width/10, -length/2 - wall/2, height - wall * 1.5);
+            wedge.position.set(-width/10, -length/2, 0);
             baseGroup.add(wedge);
            
             boxGroup.add(baseGroup);
@@ -419,15 +419,15 @@
                 const kGeo = new THREE.CylinderGeometry(hingeRadius, hingeRadius, k_span - 0.35, 16);
                 const kMesh = new THREE.Mesh(kGeo, material);
                 kMesh.rotation.z = Math.PI / 2;
-                kMesh.position.set(x_pos, 0, height + hingeRadius + 0.4);
+                kMesh.position.set(x_pos, 0, height);
                 boxGroup.add(kMesh);
             }
 
-            // Continuous Axis Pin Representation (0.9mm radius = 1.8mm dia pin)
-            const pinGeo = new THREE.CylinderGeometry(0.9, 0.9, width - 0.35, 16);
+            // Continuous Axis Pin Representation (1.05mm radius = 2.1mm dia pin)
+            const pinGeo = new THREE.CylinderGeometry(1.05, 1.05, width - 0.35, 16);
             const pinMesh = new THREE.Mesh(pinGeo, pinMaterial);
             pinMesh.rotation.z = Math.PI / 2;
-            pinMesh.position.set(0, 0, height + hingeRadius + 0.4);
+            pinMesh.position.set(0, 0, height);
             boxGroup.add(pinMesh);
 
             // Text Preview
@@ -520,10 +520,11 @@ module base_box() {
             }
         }
        
-        translate([-width/10, -length/2 - wall, height - wall*1.5])
+        // Corrected Catch Ramp Wedge on Front Wall
+        translate([-width/10, -length/2, 0])
         rotate([0, 90, 0])
         linear_extrude(width/5)
-        polygon([[0,0], [wall*1.2, 0], [0, wall*1.2]]);
+        polygon([[0, height], [-wall*1.2, height - 3.0], [0, height - 3.0]]);
     }
 }
 
@@ -559,8 +560,8 @@ module build_base_hinges() {
     num_k = (width < 80) ? 3 : 5;
     k_span = width / num_k;
     hr = wall;               
-    pin_r = 0.9;             // 0.9mm solid pin radius (1.8mm dia continuous axis)
-    pin_z = height + hr + 0.4; 
+    pin_r = 1.05;            // 1.05mm radius pin (0.35mm radial clearance inside 1.4mm bore)
+    pin_z = height;          // Hinge axis placed at rim height for 100% flush closing
     hinge_gap = 1.6;         
     k_tol = 0.35;             
 
@@ -572,8 +573,8 @@ module build_base_hinges() {
             
             translate([x_pos, 0, pin_z]) {
                 hull() {
-                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z + height])
-                    cube([k_span - k_tol, wall, pin_z - height]);
+                    translate([-(k_span - k_tol)/2, -wall - hinge_gap/2, -pin_z])
+                    cube([k_span - k_tol, wall, pin_z]);
 
                     rotate([0, 90, 0])
                     cylinder(r=hr, h=k_span - k_tol, center=true);
@@ -604,9 +605,9 @@ module build_lid_hinges() {
     num_k = (width < 80) ? 3 : 5;
     k_span = width / num_k;
     hr = wall;               
-    pin_r = 0.9;             // 0.9mm pin
-    bore_r = 1.4;            // 1.4mm bore channel (0.50mm RADIAL GAP for zero fusion)
-    pin_z = height + hr + 0.4;
+    pin_r = 1.05;             
+    bore_r = 1.4;            // 1.4mm bore (0.35mm radial clearance around 1.05mm pin)
+    pin_z = height;          // Hinge axis placed at rim height
     hinge_gap = 1.6;
     k_tol = 0.35;
 
@@ -618,8 +619,8 @@ module build_lid_hinges() {
         translate([x_pos, 0, pin_z]) {
             difference() {
                 hull() {
-                    translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z + height])
-                    cube([k_span - k_tol, wall, pin_z - height]);
+                    translate([-(k_span - k_tol)/2, hinge_gap/2, -pin_z])
+                    cube([k_span - k_tol, wall, pin_z]);
 
                     rotate([0, 90, 0])
                     cylinder(r=hr, h=k_span - k_tol, center=true);
