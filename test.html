@@ -457,7 +457,7 @@
                 boxGroup.add(kMesh);
             }
 
-            const pinGeo = new THREE.CylinderGeometry(0.95, 0.95, width - 0.35, 16);
+            const pinGeo = new THREE.CylinderGeometry(0.90, 0.90, width - 0.35, 16);
             const pinMesh = new THREE.Mesh(pinGeo, pinMaterial);
             pinMesh.rotation.z = Math.PI / 2;
             pinMesh.position.set(0, 0, height);
@@ -557,13 +557,13 @@ module base_box() {
                 }
             }
 
-            // Compact relief slots for Lid Knuckles
+            // Expanded relief slots (hr + 0.6mm) so knuckles never touch the opposite shell
             lid_indices = (width < 80) ? [0] : [-1, 1];
             for(i = lid_indices) {
                 x_pos = i * k_span;
                 translate([x_pos, length/2, height])
                 rotate([0, 90, 0])
-                cylinder(r=hr + k_tol, h=k_span + k_tol*2, center=true);
+                cylinder(r=hr + 0.6, h=k_span + k_tol*2, center=true);
             }
         }
        
@@ -602,13 +602,13 @@ module lid_box() {
             difference() {
                 translate([-width/2, -length/2, 0]) cube([width, length, height]);
                 
-                // Compact relief slots for Base Knuckles
+                // Expanded relief slots (hr + 0.6mm) so knuckles never touch the opposite shell
                 base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
                 for(i = base_indices) {
                     x_pos = i * k_span;
                     translate([x_pos, -length/2, height])
                     rotate([0, 90, 0])
-                    cylinder(r=hr + k_tol, h=k_span + k_tol*2, center=true);
+                    cylinder(r=hr + 0.6, h=k_span + k_tol*2, center=true);
                 }
             }
            
@@ -668,7 +668,7 @@ module lid_box() {
 }
 
 module build_base_hinges() {
-    pin_r = 0.95;            // 0.95mm radius pin for smooth rotation clearance
+    pin_r = 0.90;            // 0.90mm radius pin (1.8mm diameter) for free rotation
     pin_z = height;          
     hinge_gap = gap;         
     gusset_h = 3.6;          
@@ -704,13 +704,13 @@ module build_lid_hinges() {
             circle(r=r, $fn=30);
             polygon([
                 [-r * 0.7071, r * 0.7071],
-                [0, r * 1.35],               // Apex at 1.95mm: leaves 0.45mm solid plastic roof
+                [0, r * 1.35],               // Apex at 2.09mm: leaves 0.31mm solid plastic roof
                 [r * 0.7071, r * 0.7071]
             ]);
         }
     }
 
-    bore_r = 1.45;           // 1.45mm bore radius for free-swinging pin clearance
+    bore_r = 1.55;           // 1.55mm bore radius (3.1mm tunnel) for complete free swinging
     pin_z = height;          
     hinge_gap = gap;
     gusset_h = 3.6;          
