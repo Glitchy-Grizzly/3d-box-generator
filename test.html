@@ -309,9 +309,9 @@
         }
 
         function createWedgeMesh(w, l, h, wall, mat) {
-            const armW = w / 4;
+            const armW = Math.max(16.0, w / 4.0);
             const latch_hole = armW - 2 * wall;
-            const w_span = Math.max(8.0, latch_hole - 4.0); // 2mm side clearance on left and right
+            const w_span = latch_hole - 4.0; // Strictly 2.0mm side margin on each side
 
             const x_min = -w_span / 2;
             const x_max =  w_span / 2;
@@ -413,9 +413,9 @@
            
             // Open Window Latch Frame Construction
             const latchGroup = new THREE.Group();
-            const armW = width / 4;
+            const armW = Math.max(16.0, width / 4.0);
             const armT = wall;
-            const armH = 8.0; // Total arm height extending above top rim
+            const armH = 8.0; 
            
             // Left Vertical Flex Strut
             const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
@@ -427,7 +427,7 @@
             strutR.position.set(armW/2 - wall/2, 0, height + armH/2 - 1.5);
             latchGroup.add(strutR);
            
-            // Horizontal Snap Crossbar (Tip)
+            // Horizontal Snap Crossbar
             const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, 2.5), material);
             cap.position.set(0, 0, height + armH - 1.25);
             latchGroup.add(cap);
@@ -562,9 +562,9 @@ module base_box() {
             }
         }
        
-        armW = width / 4;
+        armW = max(16.0, width / 4.0);
         latch_hole = armW - 2 * wall;
-        w_span = max(8.0, latch_hole - 4.0); // 2mm side clearance inside latch opening
+        w_span = latch_hole - 4.0; // Guaranteed 2.0mm margin per side at all scales
 
         polyhedron(
             points = [
@@ -587,7 +587,7 @@ module base_box() {
 }
 
 module lid_box() {
-    armW = width / 4;
+    armW = max(16.0, width / 4.0);
     armT = wall;
     armH = 8.0;
 
@@ -612,7 +612,7 @@ module lid_box() {
                 translate([-armW/2, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
                 // Right Vertical Flex Strut
                 translate([armW/2 - wall, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
-                // Horizontal Snap Crossbar (Tip)
+                // Horizontal Snap Crossbar
                 translate([-armW/2, 0, height + armH - 2.5]) cube([armW, armT, 2.5]);
             }
         }
