@@ -35,7 +35,6 @@
             overflow: hidden;
         }
 
-        /* Sidebar Styling */
         #sidebar {
             width: 390px;
             background: var(--panel-bg);
@@ -129,7 +128,6 @@
             font-variant-numeric: tabular-nums;
         }
 
-        /* Custom Range Sliders */
         input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
@@ -184,7 +182,6 @@
             box-shadow: inset 0 0 4px rgba(0,0,0,0.4);
         }
 
-        /* Tier Pricing Card */
         .tier-card {
             background: linear-gradient(135deg, rgba(244, 63, 94, 0.14), rgba(56, 189, 248, 0.1));
             border: 1px solid rgba(244, 63, 94, 0.35);
@@ -210,7 +207,6 @@
             margin-top: 3px;
         }
 
-        /* Buttons */
         .btn-group {
             display: flex;
             flex-direction: column;
@@ -222,7 +218,7 @@
             padding: 12px 16px;
             border: none;
             border-radius: 8px;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -241,6 +237,17 @@
             background-color: #475569;
         }
 
+        .test-btn {
+            background-color: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            padding: 9px 14px;
+            font-size: 0.82rem;
+        }
+        .test-btn:hover {
+            background-color: rgba(56, 189, 248, 0.25);
+        }
+
         .etsy-btn {
             background: linear-gradient(135deg, var(--etsy), #d9460f);
             color: white;
@@ -251,7 +258,6 @@
             transform: translateY(-1px);
         }
 
-        /* Viewer & Floating HUD */
         #viewer {
             flex-grow: 1;
             position: relative;
@@ -297,7 +303,6 @@
             <p>Print-in-Place Parametric Organizer</p>
         </div>
 
-        <!-- Dimensions Section -->
         <div class="section-card">
             <div class="section-title">Dimensions (mm)</div>
             <div class="control-group">
@@ -315,7 +320,6 @@
             <input type="hidden" id="wall" value="2.0">
         </div>
 
-        <!-- Compartments Section -->
         <div class="section-card">
             <div class="section-title">Interior Grid (Base)</div>
             <div class="control-group">
@@ -328,7 +332,6 @@
             </div>
         </div>
 
-        <!-- Colors & Personalization -->
         <div class="section-card">
             <div class="section-title">Colors & Lid Inlay</div>
 
@@ -388,7 +391,6 @@
             </div>
         </div>
 
-        <!-- Etsy Tier Summary -->
         <div class="tier-card">
             <div class="tier-label">Recommended Etsy Tier</div>
             <div id="recommendedTier">Small Box (0 cm³)</div>
@@ -397,12 +399,12 @@
 
         <div class="btn-group">
             <button class="etsy-btn" onclick="saveBoxAndRedirect()">Order Custom Box on Etsy</button>
-            <button class="scad-btn" onclick="downloadSCAD()">Download OpenSCAD (.scad)</button>
+            <button class="scad-btn" onclick="downloadSCAD(false)">Download Full Box (.scad)</button>
+            <button class="test-btn" onclick="downloadSCAD(true)">Download 10-Min Hinge Test Strip (.scad)</button>
         </div>
     </div>
 
     <div id="viewer">
-        <!-- Floating 3D Fold Preview Control -->
         <div id="hud-overlay">
             <div class="section-title" style="margin-bottom: 8px;">Interactive Hinge Test</div>
             <label style="font-size: 0.8rem;">
@@ -462,6 +464,7 @@
 
     <script>
         let currentScadCode = "";
+        let testStripScadCode = "";
 
         const container = document.getElementById('viewer');
         const scene = new THREE.Scene();
@@ -480,7 +483,6 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.06;
 
-        // Studio 3-Point Lighting
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 0.65);
         scene.add(hemiLight);
 
@@ -495,7 +497,6 @@
         rimLight.position.set(-100, 60, -100);
         scene.add(rimLight);
 
-        // Print Bed Grid
         const gridHelper = new THREE.GridHelper(256, 16, 0x38bdf8, 0x334155);
         gridHelper.position.y = -0.1;
         scene.add(gridHelper);
@@ -604,7 +605,6 @@
             const font = document.getElementById('fontSelect').value;
             const foldDeg = parseFloat(document.getElementById('foldAngle').value);
 
-            // Update Badges & Color Swatches
             document.getElementById('valWidth').innerText = `${width} mm`;
             document.getElementById('valLength').innerText = `${length} mm`;
             document.getElementById('valHeight').innerText = `${height} mm`;
@@ -638,11 +638,11 @@
                 metalness: 0.5
             });
 
-            const gap = 1.2;
-            const hr = 3.2; // Upgraded 3.2mm Hinge Knuckle Radius
+            const gap = 1.4;
+            const hr = 3.2;
             const num_k = (width < 80) ? 3 : 5;
             const k_span = width / num_k;
-            const k_tol = 0.40;
+            const k_tol = 0.55;
             const base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
             const lid_indices  = (width < 80) ? [0] : [-1, 1];
 
@@ -667,10 +667,10 @@
             pinMesh.position.set(0, 0, height);
             boxGroup.add(pinMesh);
 
-            // 2. LID PIVOT GROUP (Rotates around Hinge Axis [0, 0, height])
+            // 2. LID PIVOT GROUP (FIXED: +degToRad folds UP and OVER onto the base!)
             const lidPivot = new THREE.Group();
             lidPivot.position.set(0, 0, height);
-            lidPivot.rotation.x = -THREE.MathUtils.degToRad(foldDeg);
+            lidPivot.rotation.x = THREE.MathUtils.degToRad(foldDeg);
 
             const lidGroup = buildBoxHalf(width, length, height, wall, 1, 1, material);
             lidGroup.position.set(0, length / 2 + gap / 2, -height);
@@ -701,7 +701,7 @@
             lidGroup.add(latchGroup);
             lidPivot.add(lidGroup);
 
-            // Lid Hinge Knuckles (rotates with Lid)
+            // Lid Hinge Knuckles
             for (let i of lid_indices) {
                 const x_pos = i * k_span;
                 const kGeo = new THREE.CylinderGeometry(hr, hr, k_span - k_tol, 24);
@@ -711,7 +711,7 @@
                 lidPivot.add(kMesh);
             }
 
-            // Custom Text Inlay Preview on Lid Exterior
+            // Custom Text Inlay Preview
             if (customText) {
                 const canvas = document.createElement('canvas');
                 canvas.width = 1024;
@@ -739,7 +739,6 @@
 
             boxGroup.add(lidPivot);
 
-            // Orient Z-up CAD coords to Three.js Y-up world
             boxGroup.rotation.x = -Math.PI / 2;
             scene.add(boxGroup);
 
@@ -747,7 +746,7 @@
         }
 
         function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
-            currentScadCode = `// Print-in-Place Hinged Box with Snap-Fit Latch (Bambu P1S Tuned)
+            const scadBody = (isTestStrip) => `// Print-in-Place Hinged Box with Snap-Fit Latch (Bambu P1S Anti-Fusion V2)
 // Parametric OpenSCAD Model
 
 width = ${w};
@@ -756,7 +755,7 @@ height = ${h};
 wall = ${wall};
 compX = ${cx};
 compY = ${cy};
-gap = ${gap};  // 1.2mm printing gap for flush closed alignment
+gap = ${gap};  // 1.4mm printing gap between shells
 $fn = 64;
 
 box_color = "${boxHex}";
@@ -764,21 +763,49 @@ text_color = "${textHex}";
 box_text = "${text}";
 font_style = "${font}:style=Bold";
 
-// --- DIALED-IN PRINT-IN-PLACE HINGE PARAMETERS (0.4mm Nozzle / Arachne) ---
-num_k   = (width < 80) ? 3 : 5;
-k_span  = width / num_k;
-hr      = 3.20;  // 3.20mm outer knuckle radius (gives thick 1.50mm walls around bore)
-pin_r   = 1.35;  // 2.70mm diameter solid pin (prevents sag & snapping across wide spans)
-bore_r  = 1.70;  // 3.40mm bore (0.35mm radial clearance all around pin)
-k_tol   = 0.40;  // 0.40mm axial clearance between knuckles
-gusset_h = 5.0;  // Smooth 45-deg support transition into the 2.0mm box wall
+// --- ANTI-FUSION HINGE PARAMETERS ---
+num_k      = (width < 80) ? 3 : 5;
+k_span     = width / num_k;
+hr         = 3.20;  // 3.20mm outer knuckle radius
+pin_r      = 1.35;  // 2.70mm solid pin
+bore_r     = 1.70;  // 3.40mm bore (0.35mm radial air gap)
+k_tol      = 0.55;  // 0.55mm axial clearance between knuckles
+shell_clr  = 0.75;  // 0.75mm radial air gap between knuckles and opposite box shell!
+gusset_h   = 5.5;   // 45-degree support transition into box wall
 
-module main() {
+base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
+lid_indices  = (width < 80) ? [0] : [-1, 1];
+
+module full_assembly() {
     color(box_color) {
-        translate([0, -length/2 - gap/2, 0]) base_box();
-        translate([0, length/2 + gap/2, 0]) lid_box();
-        build_base_hinges();
-        build_lid_hinges();
+        // 1. Base Box + Base Knuckles, with Lid Knuckle Clearance Cutouts subtracted
+        difference() {
+            union() {
+                translate([0, -length/2 - gap/2, 0]) base_box();
+                build_base_hinges();
+            }
+            // Guarantee Lid Knuckles NEVER touch Base Box wall or Base side walls
+            for(i = lid_indices) {
+                knuckle_clearance_cutter(i * k_span, is_base_side = true);
+            }
+        }
+
+        // 2. Lid Box + Lid Knuckles, with Base Knuckle Clearance Cutouts subtracted
+        difference() {
+            union() {
+                translate([0, length/2 + gap/2, 0]) lid_box();
+                build_lid_hinges();
+            }
+            // Guarantee Base Knuckles NEVER touch Lid Box wall or Lid side walls
+            for(i = base_indices) {
+                knuckle_clearance_cutter(i * k_span, is_base_side = false);
+            }
+        }
+
+        // 3. Continuous Solid Hinge Pin (anchored into Base Knuckles)
+        translate([0, 0, height])
+        rotate([0, 90, 0])
+        cylinder(r=pin_r, h=width - 0.4, center=true);
     }
     
     if (box_text != "") {
@@ -787,6 +814,39 @@ module main() {
         linear_extrude(0.6)
         mirror([1, 0, 0])
         text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
+    }
+}
+
+// Master Clearance Cutter: Carves a 0.75mm air moat around opposing knuckles (including outer side walls!)
+module knuckle_clearance_cutter(x_pos, is_base_side) {
+    cut_w = k_span + k_tol; // Wider than the opposing knuckle by k_tol on each side
+    cut_r = hr + shell_clr; // 3.95mm radius clearance tunnel
+    
+    translate([x_pos, 0, height]) {
+        hull() {
+            rotate([0, 90, 0])
+            cylinder(r=cut_r, h=cut_w, center=true);
+            
+            // Extend clearance up through Z+ so top lip never pinches
+            translate([0, 0, cut_r])
+            rotate([0, 90, 0])
+            cylinder(r=cut_r, h=cut_w, center=true);
+        }
+        
+        // Angled lower relief slot into the opposing wall so underside of knuckle prints in free air
+        if (is_base_side) {
+            hull() {
+                rotate([0, 90, 0]) cylinder(r=cut_r, h=cut_w, center=true);
+                translate([0, -gap/2 - wall/2, -cut_r - 1.5])
+                rotate([0, 90, 0]) cylinder(r=0.8, h=cut_w, center=true);
+            }
+        } else {
+            hull() {
+                rotate([0, 90, 0]) cylinder(r=cut_r, h=cut_w, center=true);
+                translate([0, gap/2 + wall/2, -cut_r - 1.5])
+                rotate([0, 90, 0]) cylinder(r=0.8, h=cut_w, center=true);
+            }
+        }
     }
 }
 
@@ -805,17 +865,8 @@ module base_box() {
                         -length/2 + wall + j*(comp_l+wall),
                         wall
                     ])
-                    cube([comp_w, comp_l, height]);
+                    cube([comp_w, comp_l, height + 1]);
                 }
-            }
-
-            // Relief pockets so lid knuckles rotate freely without hitting base wall
-            lid_indices = (width < 80) ? [0] : [-1, 1];
-            for(i = lid_indices) {
-                x_pos = i * k_span;
-                translate([x_pos, length/2 + gap/2, height])
-                rotate([0, 90, 0])
-                cylinder(r=hr + 0.5, h=k_span + k_tol, center=true);
             }
         }
         
@@ -823,7 +874,6 @@ module base_box() {
         latch_hole = armW - 2 * wall;
         w_span = latch_hole - 4.0; 
 
-        // Catch wedge with smooth 1.0mm protrusion
         polyhedron(
             points = [
                 [-w_span/2, -length/2, height],                
@@ -851,20 +901,8 @@ module lid_box() {
 
     difference() {
         union() {
-            difference() {
-                translate([-width/2, -length/2, 0]) cube([width, length, height]);
-                
-                // Relief pockets so base knuckles rotate freely without hitting lid wall
-                base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
-                for(i = base_indices) {
-                    x_pos = i * k_span;
-                    translate([x_pos, -length/2 - gap/2, height])
-                    rotate([0, 90, 0])
-                    cylinder(r=hr + 0.5, h=k_span + k_tol, center=true);
-                }
-            }
+            translate([-width/2, -length/2, 0]) cube([width, length, height]);
             
-            // Spring-Loaded Latch Frame with Thumb Release Tab
             translate([0, length/2, 0]) {
                 translate([-armW/2, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
                 translate([armW/2 - wall, 0, height - 3.0]) cube([wall, armT, armH + 3.0]);
@@ -914,37 +952,25 @@ module lid_box() {
 }
 
 module build_base_hinges() {
-    base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
+    for(i = base_indices) {
+        x_pos = i * k_span;
+        k_len = k_span - k_tol;
+        
+        translate([x_pos, 0, height]) {
+            hull() {
+                // Full round knuckle barrel
+                rotate([0, 90, 0])
+                cylinder(r=hr, h=k_len, center=true);
 
-    union() {
-        for(i = base_indices) {
-            x_pos = i * k_span;
-            
-            translate([x_pos, 0, height]) {
-                // Clip knuckle top at Z=0 (world Z=height) so top rim never blocks 180-deg folding
-                intersection() {
-                    hull() {
-                        translate([-(k_span - k_tol)/2, -wall - gap/2, -gusset_h])
-                        cube([k_span - k_tol, wall, gusset_h]);
-
-                        rotate([0, 90, 0])
-                        cylinder(r=hr, h=k_span - k_tol, center=true);
-                    }
-                    translate([-k_span, -hr*3, -gusset_h - 1])
-                    cube([k_span*2, hr*6, gusset_h + 1 + hr]);
-                }
+                // 45-degree gusset anchored strictly into the Base Wall (-Y)
+                translate([-k_len/2, -wall - gap/2, -gusset_h])
+                cube([k_len, wall, 0.1]);
             }
         }
-
-        // Continuous Solid Hinge Pin anchored across all base knuckles
-        translate([0, 0, height])
-        rotate([0, 90, 0])
-        cylinder(r=pin_r, h=width - k_tol, center=true);
     }
 }
 
 module build_lid_hinges() {
-    // True +Z oriented 45-degree teardrop bore (prevents top arch sag in FDM printing)
     module print_in_place_teardrop(r, len) {
         rotate([90, 0, 90])
         linear_extrude(len, center=true)
@@ -952,39 +978,48 @@ module build_lid_hinges() {
             circle(r=r, $fn=48);
             polygon([
                 [-r * 0.7071, r * 0.7071],
-                [0, r * 1.38],               // True +Z 45-degree self-supporting roof apex
+                [0, r * 1.38],
                 [r * 0.7071, r * 0.7071]
             ]);
         }
     }
 
-    lid_indices = (width < 80) ? [0] : [-1, 1];
-
     for(i = lid_indices) {
         x_pos = i * k_span;
+        k_len = k_span - k_tol;
 
         translate([x_pos, 0, height]) {
             difference() {
                 hull() {
-                    translate([-(k_span - k_tol)/2, gap/2, -gusset_h])
-                    cube([k_span - k_tol, wall, gusset_h]);
-
+                    // Full round knuckle barrel
                     rotate([0, 90, 0])
-                    cylinder(r=hr, h=k_span - k_tol, center=true);
+                    cylinder(r=hr, h=k_len, center=true);
+
+                    // 45-degree gusset anchored strictly into the Lid Wall (+Y)
+                    translate([-k_len/2, gap/2, -gusset_h])
+                    cube([k_len, wall, 0.1]);
                 }
 
                 // Subtract +Z teardrop tunnel
-                print_in_place_teardrop(bore_r, k_span + 1);
+                print_in_place_teardrop(bore_r, k_len + 2);
             }
         }
     }
 }
 
-main();
+${isTestStrip ? `
+// 10-MINUTE HINGE TEST STRIP (Slices only a 24mm strip around the hinge!)
+intersection() {
+    full_assembly();
+    translate([-width, -12, height - 12])
+    cube([width * 2, 24, 20]);
+}` : `full_assembly();`}
 `;
+            currentScadCode = scadBody(false);
+            testStripScadCode = scadBody(true);
         }
 
-        window.downloadSCAD = function() {
+        window.downloadSCAD = function(isTest = false) {
             const width = document.getElementById('width').value;
             const length = document.getElementById('length').value;
             const height = document.getElementById('height').value;
@@ -992,9 +1027,10 @@ main();
 
             const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
             const tempId = "BOX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-            const filename = `${safeText}_${width}x${length}x${height}_${tempId}.scad`;
+            const prefix = isTest ? "HINGE_TEST_" : "";
+            const filename = `${prefix}${safeText}_${width}x${length}x${height}_${tempId}.scad`;
 
-            const blob = new Blob([currentScadCode], { type: "text/plain" });
+            const blob = new Blob([isTest ? testStripScadCode : currentScadCode], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
