@@ -330,13 +330,14 @@
             const armW = Math.max(16.0, w / 4.0);
             const w_span = (armW - 2 * wall) - 4.0;
             const x_min = -w_span / 2, x_max = w_span / 2;
-            const y_wall = -l / 2, y_tip = -l / 2 - 1.2;
-            const z_top = h, z_bot = h - 3.0;
+            const y_wall = -l / 2, y_tip = -l / 2 - 1.25;
+            // Extended in Z from 3.0mm to 3.90mm to match the 3.80mm latch crossbar position!
+            const z_top = h, z_bot_wall = h - 3.90, z_bot_tip = h - 3.65;
 
             const vertices = new Float32Array([
-                x_min, y_wall, z_top,  x_max, y_wall, z_top,
-                x_min, y_wall, z_bot,  x_max, y_wall, z_bot,
-                x_min, y_tip,  z_bot,  x_max, y_tip,  z_bot
+                x_min, y_wall, z_top,       x_max, y_wall, z_top,
+                x_min, y_wall, z_bot_wall,  x_max, y_wall, z_bot_wall,
+                x_min, y_tip,  z_bot_tip,   x_max, y_tip,  z_bot_tip
             ]);
             const indices = [0,2,1, 1,2,3, 2,4,3, 3,4,5, 0,1,4, 1,5,4, 0,4,2, 1,3,5];
             const geo = new THREE.BufferGeometry();
@@ -471,7 +472,7 @@
         }
 
         function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
-            const scadBody = (isTestStrip) => `// Print-in-Place Hinged Box (Bambu P1S V7 - Zero-Play Tensioned Latch)
+            const scadBody = (isTestStrip) => `// Print-in-Place Hinged Box (Bambu P1S V8 - Extended 3.90mm Z-Wedge Lock)
 width = ${w};
 length = ${l};
 height = ${h};
@@ -607,17 +608,17 @@ module base_box() {
         }
         hinge_wall_backing_rib(is_base = true);
         
-        // --- V7 TENSIONED CATCH WEDGE (Extended tip & downward preload angle) ---
+        // --- V8 EXTENDED Z-WEDGE (Reaches down to height - 3.90mm to eliminate the 1mm gap!) ---
         armW = max(16.0, width / 4.0);
         w_span = (armW - 2 * wall) - 4.0;
         polyhedron(
             points = [
-                [-w_span/2, -length/2, height],             // 0: top inner edge
-                [ w_span/2, -length/2, height],             // 1: top inner edge
-                [-w_span/2, -length/2, height - 3.0],       // 2: lower inner edge
-                [ w_span/2, -length/2, height - 3.0],       // 3: lower inner edge
-                [-w_span/2, -length/2 - 1.2, height - 2.8], // 4: outer catch tip (pushed out 1.2mm, raised 0.2mm for tight preload)
-                [ w_span/2, -length/2 - 1.2, height - 2.8]  // 5: outer catch tip
+                [-w_span/2, -length/2,        height],        // 0: top inner edge at rim
+                [ w_span/2, -length/2,        height],        // 1: top inner edge at rim
+                [-w_span/2, -length/2,        height - 3.90], // 2: lower inner catch (matches 3.80mm latch + 0.10mm preload!)
+                [ w_span/2, -length/2,        height - 3.90], // 3: lower inner catch
+                [-w_span/2, -length/2 - 1.25, height - 3.65], // 4: outer tip (angled cam ramp pulls latch down tight as it snaps)
+                [ w_span/2, -length/2 - 1.25, height - 3.65]  // 5: outer tip
             ],
             faces = [[0,1,3,2], [2,3,5,4], [0,4,5,1], [0,2,4], [1,5,3]]
         );
@@ -718,7 +719,7 @@ complete_model();
             const height = document.getElementById('height').value;
             const rawText = document.getElementById('customText').value;
             const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
-            const typeStr = isTest ? "TEST-STRIP-V7" : "FULL-V7";
+            const typeStr = isTest ? "TEST-STRIP-V8" : "FULL-V8";
             const tempId = Math.random().toString(36).substring(2, 6).toUpperCase();
             const filename = `${safeText}_${width}x${length}x${height}_${typeStr}_${tempId}.scad`;
 
