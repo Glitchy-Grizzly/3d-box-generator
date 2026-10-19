@@ -41,7 +41,10 @@
         label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-weight: 600; font-size: 0.84rem; color: #cbd5e1; }
         .value-badge {
             background: rgba(244, 63, 94, 0.15); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.3);
-            padding: 2px 8px; border-radius: 999px; font-size: 0.76rem; font-weight: 700;
+            padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+        }
+        .char-hint {
+            font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;
         }
         input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: #334155; border-radius: 3px; outline: none; cursor: pointer; }
         input[type="range"]::-webkit-slider-thumb {
@@ -69,7 +72,7 @@
         }
         .scad-btn { background-color: #334155; color: #f8fafc; border: 1px solid var(--border-color); }
         .scad-btn:hover { background-color: #475569; }
-        .test-btn { background-color: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); font-size: 0.78rem; padding: 9px 10px; }
+        .test-btn { background-color: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); font-size: 0.76rem; padding: 8px 8px; }
         .test-btn:hover { background-color: rgba(56,189,248,0.25); }
         .etsy-btn { background: linear-gradient(135deg, var(--etsy), #d9460f); color: white; }
         .etsy-btn:hover { background: linear-gradient(135deg, var(--etsy-hover), var(--etsy)); }
@@ -132,8 +135,8 @@
                     <div id="boxSwatch" class="color-swatch" style="background: #F5547C;"></div>
                     <select id="boxColorSelect">
                         <option value="#C12E1F">Red</option>
-                        <option value="#1A1A1A">Black</option>
                         <option value="#FF6A13">Orange</option>
+                        <option value="#1A1A1A">Black</option>
                         <option value="#F8FAFC">White (Jade White)</option>
                         <option value="#F4EE2A">Yellow</option>
                         <option value="#0A2989">Blue</option>
@@ -152,8 +155,8 @@
                     <div id="textSwatch" class="color-swatch" style="background: #1A1A1A;"></div>
                     <select id="textColorSelect">
                         <option value="#1A1A1A" selected>Black</option>
-                        <option value="#F8FAFC">White (Jade White)</option>
                         <option value="#FF6A13">Orange</option>
+                        <option value="#F8FAFC">White (Jade White)</option>
                         <option value="#F4EE2A">Yellow</option>
                         <option value="#C12E1F">Red</option>
                         <option value="#0A2989">Blue</option>
@@ -167,8 +170,15 @@
                 </div>
             </div>
             <div class="control-group">
-                <label>Custom Lid Text</label>
-                <input type="text" id="customText" value="MY GAME" placeholder="Top Lid Text">
+                <label>
+                    Custom Lid Text
+                    <span class="value-badge" id="charLimitBadge">7 / 32 chars</span>
+                </label>
+                <input type="text" id="customText" value="MY GAME" placeholder="Top Lid Text (Auto-wraps to 2 lines)">
+                <div class="char-hint">
+                    <span id="lineWrapInfo">1 Line • Safe Print Size: 14.0 mm</span>
+                    <span id="maxPerLineInfo">Max 16/line</span>
+                </div>
             </div>
             <div class="control-group">
                 <label for="fontSelect">Font Style</label>
@@ -189,10 +199,14 @@
 
         <div class="btn-group">
             <button class="etsy-btn" onclick="saveBoxAndRedirect()">Order Custom Box on Etsy</button>
-            <button class="scad-btn" onclick="downloadSCAD('full')">Download Full Box (.scad)</button>
+            <button class="scad-btn" onclick="downloadSCAD('full')">Download Full Multi-Part (.scad)</button>
             <div class="test-row">
-                <button class="test-btn" onclick="downloadSCAD('hinge')">Hinge Test Strip (.scad)</button>
-                <button class="test-btn" onclick="downloadSCAD('latch')">Latch Test Clip (.scad)</button>
+                <button class="test-btn" onclick="downloadSCAD('box_only')">Box Only (.scad)</button>
+                <button class="test-btn" onclick="downloadSCAD('text_only')">Text Inlay Only (.scad)</button>
+            </div>
+            <div class="test-row">
+                <button class="test-btn" onclick="downloadSCAD('hinge')">Hinge Test (.scad)</button>
+                <button class="test-btn" onclick="downloadSCAD('latch')">Latch Test (.scad)</button>
             </div>
         </div>
     </div>
@@ -256,8 +270,7 @@
 
     <script>
         let currentScadCode = "";
-        let hingeTestScadCode = "";
-        let latchTestScadCode = "";
+        let scadVariants = {};
 
         const container = document.getElementById('viewer');
         const scene = new THREE.Scene();
@@ -291,6 +304,39 @@
 
         let boxGroup = new THREE.Group();
         scene.add(boxGroup);
+
+        function computeSafeWrappedText(rawText, width, length, wall) {
+            const usableW = width - wall * 2 - 4.0;
+            const usableL = length - wall * 2 - 6.0;
+            const maxCharsPerLine = Math.max(8, Math.min(18, Math.floor(usableW / 4.0)));
+            const maxTotalChars = maxCharsPerLine * 2;
+
+            const trimmed = rawText.slice(0, maxTotalChars);
+            let lines = [];
+
+            if (!trimmed.trim()) {
+                return { lines: [], fontSizeMm: 8, maxCharsPerLine, maxTotalChars, clampedText: trimmed };
+            }
+
+            const textClean = trimmed.trim();
+            if (textClean.length <= maxCharsPerLine) {
+                lines = [textClean];
+            } else {
+                let splitIdx = textClean.lastIndexOf(' ', maxCharsPerLine);
+                if (splitIdx <= 0) splitIdx = maxCharsPerLine;
+                const line1 = textClean.slice(0, splitIdx).trim();
+                const line2 = textClean.slice(splitIdx).trim().slice(0, maxCharsPerLine);
+                lines = line2 ? [line1, line2] : [line1];
+            }
+
+            const longestLineChars = Math.max(...lines.map(l => l.length), 1);
+            const sizeByWidth = usableW / (longestLineChars * 0.68);
+            const sizeByLength = lines.length > 1 ? (usableL / 2.6) : (usableL * 0.45);
+            const maxCap = Math.min(width / 4.5, 16.0);
+            const fontSizeMm = Math.max(5.5, Math.min(sizeByWidth, sizeByLength, maxCap));
+
+            return { lines, fontSizeMm, maxCharsPerLine, maxTotalChars, clampedText: trimmed };
+        }
 
         function buildBoxHalf(w, l, h, t, cx, cy, mat) {
             const group = new THREE.Group();
@@ -338,7 +384,6 @@
             const w_span = (armW - 2 * wall) - 4.0;
             const x_min = -w_span / 2, x_max = w_span / 2;
             const y_wall = -l / 2, y_tip = -l / 2 - 1.15;
-            // Raised to 3.30mm tip / 3.45mm wall for crisp mechanical click over the wedge!
             const z_top = h, z_bot_wall = h - 3.45, z_bot_tip = h - 3.30;
 
             const vertices = new Float32Array([
@@ -363,9 +408,21 @@
             const compY = parseInt(document.getElementById('compY').value);
             const boxColorHex = document.getElementById('boxColorSelect').value;
             const textColorHex = document.getElementById('textColorSelect').value;
-            const customText = document.getElementById('customText').value;
+            const textInput = document.getElementById('customText');
             const font = document.getElementById('fontSelect').value;
             const foldDeg = parseFloat(document.getElementById('foldAngle').value);
+
+            const textData = computeSafeWrappedText(textInput.value, width, length, wall);
+            textInput.maxLength = textData.maxTotalChars;
+            if (textInput.value.length > textData.maxTotalChars) {
+                textInput.value = textData.clampedText;
+            }
+
+            document.getElementById('charLimitBadge').innerText = `${textInput.value.length} / ${textData.maxTotalChars} chars`;
+            document.getElementById('maxPerLineInfo').innerText = `Max ${textData.maxCharsPerLine}/line (2 lines max)`;
+            document.getElementById('lineWrapInfo').innerText = textData.lines.length > 0
+                ? `${textData.lines.length} Line${textData.lines.length > 1 ? 's' : ''} • Letter Height: ${textData.fontSizeMm.toFixed(1)} mm`
+                : `No lid text`;
 
             document.getElementById('valWidth').innerText = `${width} mm`;
             document.getElementById('valLength').innerText = `${length} mm`;
@@ -452,18 +509,35 @@
                 lidPivot.add(kMesh);
             }
 
-            if (customText) {
+            if (textData.lines.length > 0) {
+                const planeW = width - wall * 2;
+                const planeL = length - wall * 2;
+                const pxPerMm = 16;
                 const canvas = document.createElement('canvas');
-                canvas.width = 1024; canvas.height = 1024;
+                canvas.width = Math.round(planeW * pxPerMm);
+                canvas.height = Math.round(planeL * pxPerMm);
                 const ctx = canvas.getContext('2d');
-                ctx.font = `bold 130px "${font}"`;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const fontPx = Math.round(textData.fontSizeMm * pxPerMm * 1.15);
+                ctx.font = `bold ${fontPx}px "${font}"`;
                 ctx.fillStyle = textColorHex;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(customText, 512, 512);
+
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+                if (textData.lines.length === 1) {
+                    ctx.fillText(textData.lines[0], cx, cy);
+                } else {
+                    const lineStep = textData.fontSizeMm * 1.35 * pxPerMm;
+                    ctx.fillText(textData.lines[0], cx, cy - lineStep / 2);
+                    ctx.fillText(textData.lines[1], cx, cy + lineStep / 2);
+                }
 
                 const tex = new THREE.CanvasTexture(canvas);
-                const textGeo = new THREE.PlaneGeometry(width - wall * 2, length - wall * 2);
+                tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                const textGeo = new THREE.PlaneGeometry(planeW, planeL);
                 const textMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
                 const textMesh = new THREE.Mesh(textGeo, textMat);
                 textMesh.position.set(0, length / 2 + gap / 2, -height - 0.05);
@@ -475,11 +549,21 @@
             boxGroup.rotation.x = -Math.PI / 2;
             scene.add(boxGroup);
 
-            generateSCAD(width, length, height, wall, compX, compY, boxColorHex, textColorHex, customText, font, gap);
+            generateSCAD(width, length, height, wall, compX, compY, boxColorHex, textColorHex, textData, font, gap);
         }
 
-        function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
-            const scadBody = (mode) => `// Print-in-Place Hinged Box (Bambu P1S V9 - Support-Free Positive Click Latch)
+        function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, textData, font, gap) {
+            const line1 = (textData.lines[0] || "").replace(/"/g, '\\"');
+            const line2 = (textData.lines[1] || "").replace(/"/g, '\\"');
+            const fontSizeMm = textData.fontSizeMm.toFixed(2);
+
+            const scadBody = (mode) => `// Print-in-Place Hinged Box (Bambu P1S V11 - Multi-Color 3MF & Non-Merging Text Inlay)
+// TIP FOR MULTI-COLOR IN OPENSCAD:
+// 1. In OpenSCAD (2024+ Snapshot): Enable Edit -> Preferences -> Features -> "manifold" & "lazy-union", then F6 Render & Export as .3MF!
+// 2. Or change export_part below between "both", "box_only", and "text_only" if exporting separate STLs.
+
+export_part = "${mode}"; // ["full":Both Box & Text (3MF), "box_only":Box Body Only (Debossed), "text_only":Text Inlay Only, "hinge":Hinge Test Strip, "latch":Latch Test Strip]
+
 width = ${w};
 length = ${l};
 height = ${h};
@@ -489,9 +573,11 @@ compY = ${cy};
 gap = ${gap};
 $fn = 64;
 
-box_color = "${boxHex}";
+box_color  = "${boxHex}";
 text_color = "${textHex}";
-box_text = "${text}";
+box_text_1 = "${line1}";
+box_text_2 = "${line2}";
+text_size  = ${fontSizeMm};
 font_style = "${font}:style=Bold";
 
 num_k     = 5;
@@ -506,39 +592,45 @@ gusset_h  = 4.8;
 base_indices = [-2, 0, 2];
 lid_indices  = [-1, 1];
 
+module render_lid_text() {
+    mirror([1, 0, 0]) {
+        if (box_text_2 == "") {
+            text(box_text_1, font=font_style, size=text_size, halign="center", valign="center");
+        } else {
+            line_step = text_size * 1.35;
+            translate([0,  line_step/2, 0])
+                text(box_text_1, font=font_style, size=text_size, halign="center", valign="center");
+            translate([0, -line_step/2, 0])
+                text(box_text_2, font=font_style, size=text_size, halign="center", valign="center");
+        }
+    }
+}
+
 module complete_model() {
-    if ("${mode}" == "hinge") {
+    if (export_part == "hinge") {
         intersection() {
-            full_assembly();
+            box_body_assembly();
             translate([0, 0, height]) cube([width + 2, 24, height*2.5], center=true);
         }
-    } else if ("${mode}" == "latch") {
-        // 8-Minute Front Latch + Hinge Spine Test Strip (30mm wide center strip across full box length)
+    } else if (export_part == "latch") {
         intersection() {
-            full_assembly();
+            box_body_assembly();
             armW = max(16.0, width / 4.0);
             translate([0, 0, height]) cube([armW + 8, length*2 + 20, height*2.5], center=true);
         }
+    } else if (export_part == "box_only") {
+        box_body_assembly();
+    } else if (export_part == "text_only") {
+        text_inlay_assembly();
     } else {
-        full_assembly();
+        // "full": Top-level separate objects so OpenSCAD lazy-union / 3MF exports 2 distinct colored parts!
+        // Also uses a 0.02mm XY/Z micro-clearance if rendered without lazy-union so text never vanishes!
+        box_body_assembly();
+        text_inlay_assembly();
     }
 }
 
-module lid_bore_tunnel(r, len) {
-    translate([0, 0, height])
-    rotate([90, 0, 90])
-    linear_extrude(len, center=true)
-    union() {
-        circle(r=r, $fn=48);
-        polygon([
-            [-r * 0.7071, r * 0.7071],
-            [0,           r * 1.32],
-            [ r * 0.7071, r * 0.7071]
-        ]);
-    }
-}
-
-module full_assembly() {
+module box_body_assembly() {
     color(box_color) {
         union() {
             difference() {
@@ -569,13 +661,28 @@ module full_assembly() {
             }
         }
     }
+}
 
-    if (box_text != "" && "${mode}" == "full") {
+module text_inlay_assembly() {
+    if (box_text_1 != "") {
         color(text_color)
         translate([0, length/2 + gap/2, 0])
-        linear_extrude(0.6)
-        mirror([1, 0, 0])
-        text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
+        linear_extrude(0.60)
+        render_lid_text();
+    }
+}
+
+module lid_bore_tunnel(r, len) {
+    translate([0, 0, height])
+    rotate([90, 0, 90])
+    linear_extrude(len, center=true)
+    union() {
+        circle(r=r, $fn=48);
+        polygon([
+            [-r * 0.7071, r * 0.7071],
+            [0,           r * 1.32],
+            [ r * 0.7071, r * 0.7071]
+        ]);
     }
 }
 
@@ -622,18 +729,16 @@ module base_box() {
         }
         hinge_wall_backing_rib(is_base = true);
         
-        // --- V9 SUPPORT-FREE POSITIVE-CLICK WEDGE ---
-        // Raised to height - 3.30mm tip / height - 3.45mm wall so the 3.80mm latch clicks cleanly UNDER the shelf!
         armW = max(16.0, width / 4.0);
         w_span = (armW - 2 * wall) - 4.0;
         polyhedron(
             points = [
-                [-w_span/2, -length/2,        height],        // 0: top inner edge at rim
-                [ w_span/2, -length/2,        height],        // 1: top inner edge at rim
-                [-w_span/2, -length/2,        height - 3.45], // 2: lower inner catch (raised 0.45mm from V8 so latch fully snaps under!)
-                [ w_span/2, -length/2,        height - 3.45], // 3: lower inner catch
-                [-w_span/2, -length/2 - 1.15, height - 3.30], // 4: outer catch lip (clears crossbar before rims bottom out)
-                [ w_span/2, -length/2 - 1.15, height - 3.30]  // 5: outer catch lip
+                [-w_span/2, -length/2,        height],
+                [ w_span/2, -length/2,        height],
+                [-w_span/2, -length/2,        height - 3.45],
+                [ w_span/2, -length/2,        height - 3.45],
+                [-w_span/2, -length/2 - 1.15, height - 3.30],
+                [ w_span/2, -length/2 - 1.15, height - 3.30]
             ],
             faces = [[0,1,3,2], [2,3,5,4], [0,4,5,1], [0,2,4], [1,5,3]]
         );
@@ -673,11 +778,12 @@ module lid_box() {
             }
             translate([-width/2 + wall, -length/2 + wall, wall])
             cube([width - wall*2, length - wall*2, height + 1]);
-            if (box_text != "" && "${mode}" == "full") {
-                translate([0, 0, -0.05])
-                linear_extrude(0.65)
-                mirror([1, 0, 0])
-                text(box_text, font=font_style, size=min(width/5, length/(len(box_text)*0.8)), halign="center", valign="center");
+            // Cut 0.62mm pocket with 0.01mm offset so text never merges even without lazy-union!
+            if (box_text_1 != "") {
+                translate([0, 0, -0.02])
+                linear_extrude(0.64)
+                offset(r=0.01)
+                render_lid_text();
             }
         }
         hinge_wall_backing_rib(is_base = false);
@@ -725,8 +831,13 @@ module build_lid_hinges() {
 complete_model();
 `;
             currentScadCode = scadBody("full");
-            hingeTestScadCode = scadBody("hinge");
-            latchTestScadCode = scadBody("latch");
+            scadVariants = {
+                full: currentScadCode,
+                box_only: scadBody("box_only"),
+                text_only: scadBody("text_only"),
+                hinge: scadBody("hinge"),
+                latch: scadBody("latch")
+            };
         }
 
         window.downloadSCAD = function(mode = 'full') {
@@ -735,12 +846,17 @@ complete_model();
             const height = document.getElementById('height').value;
             const rawText = document.getElementById('customText').value;
             const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
-            const typeStr = mode === 'hinge' ? "HINGE-TEST-V9" : (mode === 'latch' ? "LATCH-TEST-V9" : "FULL-V9");
+            const typeMap = {
+                full: "FULL-3MF-V11",
+                box_only: "BOX-ONLY-V11",
+                text_only: "TEXT-ONLY-V11",
+                hinge: "HINGE-TEST-V11",
+                latch: "LATCH-TEST-V11"
+            };
             const tempId = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const filename = `${safeText}_${width}x${length}x${height}_${typeStr}_${tempId}.scad`;
+            const filename = `${safeText}_${width}x${length}x${height}_${typeMap[mode]}_${tempId}.scad`;
 
-            const codeMap = { full: currentScadCode, hinge: hingeTestScadCode, latch: latchTestScadCode };
-            const blob = new Blob([codeMap[mode]], { type: "text/plain" });
+            const blob = new Blob([scadVariants[mode]], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
