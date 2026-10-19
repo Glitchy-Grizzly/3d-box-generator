@@ -13,78 +13,89 @@
         }
         * { box-sizing: border-box; }
         body {
-            margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden;
+            margin: 0; padding: 0; display: flex; height: 100vh; width: 100vw; overflow: hidden;
             font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
             background-color: var(--bg-dark); color: var(--text-main);
         }
         #sidebar {
-            width: 390px; background: var(--panel-bg); backdrop-filter: blur(16px);
-            border-right: 1px solid var(--border-color); padding: 20px;
+            width: 390px; min-width: 390px; background: var(--panel-bg); backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border-color); padding: 18px;
             box-shadow: 10px 0 30px rgba(0,0,0,0.5); overflow-y: auto; z-index: 10;
-            display: flex; flex-direction: column; gap: 14px;
+            display: flex; flex-direction: column; gap: 12px;
         }
         #sidebar::-webkit-scrollbar { width: 6px; }
         #sidebar::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 3px; }
-        .brand-header { text-align: center; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+        .brand-header { text-align: center; padding-bottom: 6px; border-bottom: 1px solid var(--border-color); }
         .brand-header h1 {
-            font-size: 1.3rem; font-weight: 800; margin: 0; letter-spacing: 1px; text-transform: uppercase;
+            font-size: 1.25rem; font-weight: 800; margin: 0; letter-spacing: 1px; text-transform: uppercase;
             background: linear-gradient(90deg, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .brand-header p { margin: 4px 0 0; font-size: 0.78rem; color: var(--text-muted); }
-        .section-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 14px; }
+        .brand-header p { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-muted); }
+        .section-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; }
         .section-title {
-            font-size: 0.74rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent);
-            font-weight: 700; margin-bottom: 10px; display: flex; justify-content: space-between;
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent);
+            font-weight: 700; margin-bottom: 8px; display: flex; justify-content: space-between;
         }
-        .control-group { margin-bottom: 10px; }
+        .control-group { margin-bottom: 8px; }
         .control-group:last-child { margin-bottom: 0; }
-        label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-weight: 600; font-size: 0.84rem; color: #cbd5e1; }
+        label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-weight: 600; font-size: 0.82rem; color: #cbd5e1; }
         .value-badge {
             background: rgba(244, 63, 94, 0.15); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.3);
-            padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+            padding: 2px 7px; border-radius: 999px; font-size: 0.73rem; font-weight: 700;
         }
-        .char-hint {
-            font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;
-        }
-        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: #334155; border-radius: 3px; outline: none; cursor: pointer; }
+        .char-hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; display: flex; justify-content: space-between; }
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: #334155; border-radius: 4px; outline: none; cursor: pointer; }
         input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
             background: var(--neon); border: 2px solid #fff; box-shadow: 0 0 8px rgba(244,63,94,0.6);
         }
         input[type="text"], select {
-            width: 100%; padding: 8px 10px; background: #0f172a; border: 1px solid var(--border-color);
-            color: var(--text-main); border-radius: 6px; font-size: 0.86rem; outline: none;
+            width: 100%; padding: 9px 10px; background: #0f172a; border: 1px solid var(--border-color);
+            color: var(--text-main); border-radius: 6px; font-size: 0.88rem; outline: none;
         }
         .color-row { display: flex; align-items: center; gap: 8px; }
-        .color-swatch { width: 28px; height: 28px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; }
+        .color-swatch { width: 26px; height: 26px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.25); flex-shrink: 0; }
         .tier-card {
             background: linear-gradient(135deg, rgba(244,63,94,0.14), rgba(56,189,248,0.1));
-            border: 1px solid rgba(244,63,94,0.35); border-radius: 10px; padding: 10px 14px; text-align: center;
+            border: 1px solid rgba(244,63,94,0.35); border-radius: 10px; padding: 8px 12px; text-align: center;
         }
-        .tier-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 3px; }
-        #recommendedTier { font-size: 1.02rem; font-weight: 800; color: #fff; }
-        #closedDims { font-size: 0.75rem; color: var(--accent); margin-top: 3px; }
-        .btn-group { display: flex; flex-direction: column; gap: 8px; }
-        .test-row { display: flex; gap: 8px; }
+        .tier-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 2px; }
+        #recommendedTier { font-size: 0.98rem; font-weight: 800; color: #fff; }
+        #closedDims { font-size: 0.72rem; color: var(--accent); margin-top: 2px; }
+        .btn-group { display: flex; flex-direction: column; gap: 6px; }
+        .test-row { display: flex; gap: 6px; }
         button {
-            width: 100%; padding: 11px 14px; border: none; border-radius: 8px; font-size: 0.88rem;
+            width: 100%; padding: 11px 14px; border: none; border-radius: 8px; font-size: 0.86rem;
             font-weight: 700; cursor: pointer; transition: all 0.2s ease;
         }
         .scad-btn { background-color: #334155; color: #f8fafc; border: 1px solid var(--border-color); }
         .scad-btn:hover { background-color: #475569; }
-        .test-btn { background-color: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); font-size: 0.76rem; padding: 8px 8px; }
+        .test-btn { background-color: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); font-size: 0.74rem; padding: 8px 6px; }
         .test-btn:hover { background-color: rgba(56,189,248,0.25); }
         .etsy-btn { background: linear-gradient(135deg, var(--etsy), #d9460f); color: white; }
         .etsy-btn:hover { background: linear-gradient(135deg, var(--etsy-hover), var(--etsy)); }
         #viewer { flex-grow: 1; position: relative; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); }
         #hud-overlay {
-            position: absolute; top: 18px; right: 18px; background: var(--panel-bg); backdrop-filter: blur(12px);
-            border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px; width: 240px; z-index: 5;
+            position: absolute; top: 14px; right: 14px; background: var(--panel-bg); backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; width: 220px; z-index: 5;
         }
         .hud-hint {
-            position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+            position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
             background: rgba(15,23,42,0.75); border: 1px solid var(--border-color);
-            padding: 6px 14px; border-radius: 999px; font-size: 0.75rem; color: var(--text-muted); pointer-events: none;
+            padding: 5px 12px; border-radius: 999px; font-size: 0.72rem; color: var(--text-muted); pointer-events: none; text-align: center; white-space: nowrap;
+        }
+
+        /* --- MOBILE RESPONSIVE MEDIA QUERY (< 768px) --- */
+        @media (max-width: 768px) {
+            body { flex-direction: column; height: 100vh; overflow: hidden; }
+            #viewer { height: 45vh; min-height: 220px; width: 100vw; flex-grow: 0; }
+            #sidebar {
+                width: 100vw; min-width: 100vw; height: 55vh; flex-grow: 1;
+                border-right: none; border-top: 1px solid var(--border-color);
+                box-shadow: 0 -10px 30px rgba(0,0,0,0.5); padding: 14px;
+            }
+            #hud-overlay { top: 10px; right: 10px; width: 190px; padding: 8px 10px; }
+            .hud-hint { display: none; } /* Hide desktop mouse hint on touch devices */
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -213,13 +224,13 @@
 
     <div id="viewer">
         <div id="hud-overlay">
-            <div class="section-title" style="margin-bottom: 8px;">Interactive Hinge Test</div>
-            <label style="font-size: 0.8rem;">
+            <div class="section-title" style="margin-bottom: 6px;">Interactive Hinge Test</div>
+            <label style="font-size: 0.76rem;">
                 Fold Lid <span class="value-badge" id="valFold">0° (Flat)</span>
             </label>
             <input type="range" id="foldAngle" min="0" max="180" value="0">
         </div>
-        <div class="hud-hint">Left-Click + Drag to Orbit • Scroll to Zoom • Right-Click to Pan</div>
+        <div class="hud-hint">Touch & Drag to Rotate • Pinch to Zoom</div>
     </div>
 
     <script type="module">
@@ -557,12 +568,8 @@
             const line2 = (textData.lines[1] || "").replace(/"/g, '\\"');
             const fontSizeMm = textData.fontSizeMm.toFixed(2);
 
-            const scadBody = (mode) => `// Print-in-Place Hinged Box (Bambu P1S V11 - Multi-Color 3MF & Non-Merging Text Inlay)
-// TIP FOR MULTI-COLOR IN OPENSCAD:
-// 1. In OpenSCAD (2024+ Snapshot): Enable Edit -> Preferences -> Features -> "manifold" & "lazy-union", then F6 Render & Export as .3MF!
-// 2. Or change export_part below between "both", "box_only", and "text_only" if exporting separate STLs.
-
-export_part = "${mode}"; // ["full":Both Box & Text (3MF), "box_only":Box Body Only (Debossed), "text_only":Text Inlay Only, "hinge":Hinge Test Strip, "latch":Latch Test Strip]
+            const scadBody = (mode) => `// Print-in-Place Hinged Box (Bambu P1S V12 - Responsive & Multi-Color)
+export_part = "${mode}";
 
 width = ${w};
 length = ${l};
@@ -623,8 +630,6 @@ module complete_model() {
     } else if (export_part == "text_only") {
         text_inlay_assembly();
     } else {
-        // "full": Top-level separate objects so OpenSCAD lazy-union / 3MF exports 2 distinct colored parts!
-        // Also uses a 0.02mm XY/Z micro-clearance if rendered without lazy-union so text never vanishes!
         box_body_assembly();
         text_inlay_assembly();
     }
@@ -778,7 +783,6 @@ module lid_box() {
             }
             translate([-width/2 + wall, -length/2 + wall, wall])
             cube([width - wall*2, length - wall*2, height + 1]);
-            // Cut 0.62mm pocket with 0.01mm offset so text never merges even without lazy-union!
             if (box_text_1 != "") {
                 translate([0, 0, -0.02])
                 linear_extrude(0.64)
@@ -847,11 +851,11 @@ complete_model();
             const rawText = document.getElementById('customText').value;
             const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
             const typeMap = {
-                full: "FULL-3MF-V11",
-                box_only: "BOX-ONLY-V11",
-                text_only: "TEXT-ONLY-V11",
-                hinge: "HINGE-TEST-V11",
-                latch: "LATCH-TEST-V11"
+                full: "FULL-3MF-V12",
+                box_only: "BOX-ONLY-V12",
+                text_only: "TEXT-ONLY-V12",
+                hinge: "HINGE-TEST-V12",
+                latch: "LATCH-TEST-V12"
             };
             const tempId = Math.random().toString(36).substring(2, 6).toUpperCase();
             const filename = `${safeText}_${width}x${length}x${height}_${typeMap[mode]}_${tempId}.scad`;
