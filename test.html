@@ -330,7 +330,7 @@
             const armW = Math.max(16.0, w / 4.0);
             const w_span = (armW - 2 * wall) - 4.0;
             const x_min = -w_span / 2, x_max = w_span / 2;
-            const y_wall = -l / 2, y_tip = -l / 2 - 1.0;
+            const y_wall = -l / 2, y_tip = -l / 2 - 1.2;
             const z_top = h, z_bot = h - 3.0;
 
             const vertices = new Float32Array([
@@ -384,7 +384,6 @@
             const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(boxColorHex), roughness: 0.38, metalness: 0.08 });
             const pinMaterial = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.25, metalness: 0.5 });
 
-            // V6 Anti-Twist Parameters: 5 knuckles across all widths, 0.32mm radial & 0.35mm axial tolerances
             const gap = 0.90, hr = 3.20, pin_r = 1.33, k_tol = 0.35;
             const num_k = 5;
             const k_span = width / num_k;
@@ -472,7 +471,7 @@
         }
 
         function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
-            const scadBody = (isTestStrip) => `// Print-in-Place Hinged Box (Bambu P1S V6 - Zero-Twist & Precision Fit)
+            const scadBody = (isTestStrip) => `// Print-in-Place Hinged Box (Bambu P1S V7 - Zero-Play Tensioned Latch)
 width = ${w};
 length = ${l};
 height = ${h};
@@ -487,14 +486,13 @@ text_color = "${textHex}";
 box_text = "${text}";
 font_style = "${font}:style=Bold";
 
-// --- V6 PRECISION ANTI-TWIST HINGE PARAMETERS ---
-num_k     = 5;     // Always 5 knuckles so Lid has 2 wide-set knuckles (eliminates center seesaw twist!)
+num_k     = 5;
 k_span    = width / num_k;
-hr        = 3.20;  // 3.20mm outer knuckle radius
-pin_r     = 1.33;  // 2.66mm solid pin (increased from 1.15mm to eliminate radial slop)
-bore_r    = 1.65;  // 3.30mm bore (exact 0.32mm radial clearance all around pin)
-k_tol     = 0.35;  // 0.35mm axial gap between knuckles (eliminates side-to-side sliding)
-shell_clr = 0.65;  // 0.65mm radial clearance cradle so knuckles never touch opposite shell
+hr        = 3.20;
+pin_r     = 1.33;
+bore_r    = 1.65;
+k_tol     = 0.35;
+shell_clr = 0.65;
 gusset_h  = 4.8;
 
 base_indices = [-2, 0, 2];
@@ -504,7 +502,6 @@ module complete_model() {
     if (${isTestStrip}) {
         intersection() {
             full_assembly();
-            // Full width x 24mm test strip so all 5 knuckles print in ~10 mins
             translate([0, 0, height]) cube([width + 2, 24, height*2.5], center=true);
         }
     } else {
@@ -512,7 +509,6 @@ module complete_model() {
     }
 }
 
-// Single +Z Teardrop Bore Tunnel (extruded along X, peak pointing straight UP along +Z)
 module lid_bore_tunnel(r, len) {
     translate([0, 0, height])
     rotate([90, 0, 90])
@@ -521,7 +517,7 @@ module lid_bore_tunnel(r, len) {
         circle(r=r, $fn=48);
         polygon([
             [-r * 0.7071, r * 0.7071],
-            [0,           r * 1.32],   // Tightened peak height so pin cannot lift vertically
+            [0,           r * 1.32],
             [ r * 0.7071, r * 0.7071]
         ]);
     }
@@ -529,7 +525,6 @@ module lid_bore_tunnel(r, len) {
 
 module full_assembly() {
     color(box_color) {
-        // 1. Base Box + Base Knuckles + Pin (with Lid Knuckle Cradles subtracted)
         union() {
             difference() {
                 union() {
@@ -540,13 +535,11 @@ module full_assembly() {
                     knuckle_cradle_cutter(i * k_span, is_base_side = true);
                 }
             }
-            // Continuous Solid Pin (anchored into Base Knuckles)
             translate([0, 0, height])
             rotate([0, 90, 0])
             cylinder(r=pin_r, h=width - k_tol, center=true);
         }
 
-        // 2. Lid Box + Lid Knuckles
         difference() {
             union() {
                 translate([0, length/2 + gap/2, 0]) lid_box();
@@ -571,9 +564,8 @@ module full_assembly() {
     }
 }
 
-// Fixed Cradle Width: Only clears the opposing wall (k_span - k_tol + 0.70) without shaving neighboring knuckles!
 module knuckle_cradle_cutter(x_pos, is_base_side) {
-    cut_w = k_span; // Exact span width preserves the full k_span - k_tol length of neighboring knuckles!
+    cut_w = k_span;
     cut_r = hr + shell_clr;
     y_dir = is_base_side ? -1 : 1;
 
@@ -614,13 +606,18 @@ module base_box() {
             }
         }
         hinge_wall_backing_rib(is_base = true);
+        
+        // --- V7 TENSIONED CATCH WEDGE (Extended tip & downward preload angle) ---
         armW = max(16.0, width / 4.0);
         w_span = (armW - 2 * wall) - 4.0;
         polyhedron(
             points = [
-                [-w_span/2, -length/2, height], [w_span/2, -length/2, height],
-                [-w_span/2, -length/2, height - 3.0], [w_span/2, -length/2, height - 3.0],
-                [-w_span/2, -length/2 - 1.0, height - 3.0], [w_span/2, -length/2 - 1.0, height - 3.0]
+                [-w_span/2, -length/2, height],             // 0: top inner edge
+                [ w_span/2, -length/2, height],             // 1: top inner edge
+                [-w_span/2, -length/2, height - 3.0],       // 2: lower inner edge
+                [ w_span/2, -length/2, height - 3.0],       // 3: lower inner edge
+                [-w_span/2, -length/2 - 1.2, height - 2.8], // 4: outer catch tip (pushed out 1.2mm, raised 0.2mm for tight preload)
+                [ w_span/2, -length/2 - 1.2, height - 2.8]  // 5: outer catch tip
             ],
             faces = [[0,1,3,2], [2,3,5,4], [0,4,5,1], [0,2,4], [1,5,3]]
         );
@@ -721,7 +718,7 @@ complete_model();
             const height = document.getElementById('height').value;
             const rawText = document.getElementById('customText').value;
             const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
-            const typeStr = isTest ? "TEST-STRIP-V6" : "FULL-V6";
+            const typeStr = isTest ? "TEST-STRIP-V7" : "FULL-V7";
             const tempId = Math.random().toString(36).substring(2, 6).toUpperCase();
             const filename = `${safeText}_${width}x${length}x${height}_${typeStr}_${tempId}.scad`;
 
