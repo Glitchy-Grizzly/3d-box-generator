@@ -384,11 +384,12 @@
             const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(boxColorHex), roughness: 0.38, metalness: 0.08 });
             const pinMaterial = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.25, metalness: 0.5 });
 
-            const gap = 0.90, hr = 3.20, pin_r = 1.15, k_tol = 0.55;
-            const num_k = (width < 80) ? 3 : 5;
+            // V6 Anti-Twist Parameters: 5 knuckles across all widths, 0.32mm radial & 0.35mm axial tolerances
+            const gap = 0.90, hr = 3.20, pin_r = 1.33, k_tol = 0.35;
+            const num_k = 5;
             const k_span = width / num_k;
-            const base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
-            const lid_indices  = (width < 80) ? [0] : [-1, 1];
+            const base_indices = [-2, 0, 2];
+            const lid_indices  = [-1, 1];
 
             const baseGroup = buildBoxHalf(width, length, height, wall, compX, compY, material);
             baseGroup.position.set(0, -length / 2 - gap / 2, 0);
@@ -471,7 +472,7 @@
         }
 
         function generateSCAD(w, l, h, wall, cx, cy, boxHex, textHex, text, font, gap) {
-            const scadBody = (isTestStrip) => `// Print-in-Place Hinged Box (Bambu P1S V5 - Isolated Pin & Full Bore Subtraction)
+            const scadBody = (isTestStrip) => `// Print-in-Place Hinged Box (Bambu P1S V6 - Zero-Twist & Precision Fit)
 width = ${w};
 length = ${l};
 height = ${h};
@@ -486,23 +487,25 @@ text_color = "${textHex}";
 box_text = "${text}";
 font_style = "${font}:style=Bold";
 
-num_k     = (width < 80) ? 3 : 5;
+// --- V6 PRECISION ANTI-TWIST HINGE PARAMETERS ---
+num_k     = 5;     // Always 5 knuckles so Lid has 2 wide-set knuckles (eliminates center seesaw twist!)
 k_span    = width / num_k;
 hr        = 3.20;  // 3.20mm outer knuckle radius
-pin_r     = 1.15;  // 2.30mm solid pin
-bore_r    = 1.70;  // 3.40mm bore (0.55mm radial air gap all around pin!)
-k_tol     = 0.55;  // 0.55mm axial clearance between knuckles
-shell_clr = 0.70;  // 0.70mm radial clearance cradle so knuckles never touch opposite shell
+pin_r     = 1.33;  // 2.66mm solid pin (increased from 1.15mm to eliminate radial slop)
+bore_r    = 1.65;  // 3.30mm bore (exact 0.32mm radial clearance all around pin)
+k_tol     = 0.35;  // 0.35mm axial gap between knuckles (eliminates side-to-side sliding)
+shell_clr = 0.65;  // 0.65mm radial clearance cradle so knuckles never touch opposite shell
 gusset_h  = 4.8;
 
-base_indices = (width < 80) ? [-1, 1] : [-2, 0, 2];
-lid_indices  = (width < 80) ? [0] : [-1, 1];
+base_indices = [-2, 0, 2];
+lid_indices  = [-1, 1];
 
 module complete_model() {
     if (${isTestStrip}) {
         intersection() {
             full_assembly();
-            translate([0, 0, height]) cube([40, 24, height*2.5], center=true);
+            // Full width x 24mm test strip so all 5 knuckles print in ~10 mins
+            translate([0, 0, height]) cube([width + 2, 24, height*2.5], center=true);
         }
     } else {
         full_assembly();
@@ -518,7 +521,7 @@ module lid_bore_tunnel(r, len) {
         circle(r=r, $fn=48);
         polygon([
             [-r * 0.7071, r * 0.7071],
-            [0,           r * 1.38],
+            [0,           r * 1.32],   // Tightened peak height so pin cannot lift vertically
             [ r * 0.7071, r * 0.7071]
         ]);
     }
@@ -544,7 +547,6 @@ module full_assembly() {
         }
 
         // 2. Lid Box + Lid Knuckles
-        // Subtract BOTH Base Knuckle Cradles AND the Teardrop Bore from the ENTIRE Lid Assembly!
         difference() {
             union() {
                 translate([0, length/2 + gap/2, 0]) lid_box();
@@ -555,7 +557,7 @@ module full_assembly() {
             }
             for(i = lid_indices) {
                 translate([i * k_span, 0, 0])
-                lid_bore_tunnel(bore_r, k_span + 0.4);
+                lid_bore_tunnel(bore_r, k_span + 0.2);
             }
         }
     }
@@ -569,8 +571,9 @@ module full_assembly() {
     }
 }
 
+// Fixed Cradle Width: Only clears the opposing wall (k_span - k_tol + 0.70) without shaving neighboring knuckles!
 module knuckle_cradle_cutter(x_pos, is_base_side) {
-    cut_w = k_span + k_tol;
+    cut_w = k_span; // Exact span width preserves the full k_span - k_tol length of neighboring knuckles!
     cut_r = hr + shell_clr;
     y_dir = is_base_side ? -1 : 1;
 
@@ -718,7 +721,7 @@ complete_model();
             const height = document.getElementById('height').value;
             const rawText = document.getElementById('customText').value;
             const safeText = rawText.replace(/[^a-zA-Z0-9\s_-]/g, '').trim() || "BOX";
-            const typeStr = isTest ? "TEST-STRIP-V5" : "FULL-V5";
+            const typeStr = isTest ? "TEST-STRIP-V6" : "FULL-V6";
             const tempId = Math.random().toString(36).substring(2, 6).toUpperCase();
             const filename = `${safeText}_${width}x${length}x${height}_${typeStr}_${tempId}.scad`;
 
