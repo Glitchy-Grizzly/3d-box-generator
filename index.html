@@ -590,8 +590,7 @@ gusset_h  = 4.8;
 base_indices = [-2, 0, 2];
 lid_indices  = [-1, 1];
 
-module render_lid_text() {
-    mirror([1, 0, 0]) {
+module render_lid_text() {    
         if (box_text_2 == "") {
             text(box_text_1, font=font_style, size=text_size, halign="center", valign="center");
         } else {
@@ -602,7 +601,6 @@ module render_lid_text() {
                 text(box_text_2, font=font_style, size=text_size, halign="center", valign="center");
         }
     }
-}
 
 module complete_model() {
     if (export_part == "hinge") {
