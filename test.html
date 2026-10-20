@@ -599,7 +599,10 @@ gusset_h  = 4.8;
 base_indices = [-2, 0, 2];
 lid_indices  = [-1, 1];
 
+// CORRECTED: mirror([0, 1, 0]) flips Y-axis so when the lid folds 180° over the X-axis hinge,
+// the text is right-side up AND reads left-to-right from the front latch!
 module render_lid_text() {
+    mirror([0, 1, 0]) {
         if (box_text_2 == "") {
             text(box_text_1, font=font_style, size=text_size, halign="center", valign="center");
         } else {
@@ -608,7 +611,8 @@ module render_lid_text() {
                 text(box_text_1, font=font_style, size=text_size, halign="center", valign="center");
             translate([0, -line_step/2, 0])
                 text(box_text_2, font=font_style, size=text_size, halign="center", valign="center");
-        } 
+        }
+    }
 }
 
 module complete_model() {
