@@ -227,6 +227,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB1aOZeIwyhVEb4D2sRimetbjDJhbeZRqI",
@@ -238,6 +239,13 @@
         };
 
         const app = initializeApp(firebaseConfig);
+
+        // Initialize App Check with reCAPTCHA Enterprise
+        const appCheck = initializeAppCheck(app, {
+            provider: new ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_SITE_KEY_HERE'),
+            isTokenAutoRefreshEnabled: true
+        });
+
         const db = getFirestore(app);
 
         window.saveBoxAndRedirect = async function() {
