@@ -39,9 +39,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 
-        // ⚠️ REPLACE THIS OBJECT WITH YOUR FIREBASE CONFIG
-        // Your web app's Firebase configuration
         const firebaseConfig = {
           apiKey: "AIzaSyB1aOZeIwyhVEb4D2sRimetbjDJhbeZRqI",
           authDomain: "print-in-place-boxes.firebaseapp.com",
@@ -52,8 +51,16 @@
         };
 
         const app = initializeApp(firebaseConfig);
+
+        // Initialize App Check with reCAPTCHA Enterprise
+        const appCheck = initializeAppCheck(app, {
+            provider: new ReCaptchaEnterpriseProvider('YOUR_RECAPTCHA_SITE_KEY_HERE'),
+            isTokenAutoRefreshEnabled: true
+        });
+
         const db = getFirestore(app);
         let currentScad = "";
+        let currentDesignData = null;
 
         window.fetchDesign = async function() {
             const id = document.getElementById('designIdInput').value.trim().toUpperCase();
@@ -64,16 +71,16 @@
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    currentScad = data.scadCode || "";
+                    currentDesignData = docSnap.data();
+                    currentScad = currentDesignData.scadCode || "";
                     
                     document.getElementById('scadDisplay').innerText = currentScad;
                     document.getElementById('paramsList').innerHTML = `
-                        <li><strong>Dimensions:</strong> ${data.width}mm (W) x ${data.length}mm (L) x ${data.height}mm (H)</li>
-                        <li><strong>Wall Thickness:</strong> ${data.wall}mm</li>
-                        <li><strong>Grid Dividers:</strong> ${data.compX} (X) x ${data.compY} (Y)</li>
-                        <li><strong>Custom Text:</strong> "${data.customText}" (${data.font})</li>
-                        <li><strong>Date Created:</strong> ${new Date(data.createdAt).toLocaleString()}</li>
+                        <li><strong>Dimensions:</strong> ${currentDesignData.width}mm (W) x ${currentDesignData.length}mm (L) x ${currentDesignData.height}mm (H)</li>
+                        <li><strong>Wall Thickness:</strong> ${currentDesignData.wall}mm</li>
+                        <li><strong>Grid Dividers:</strong> ${currentDesignData.compX} (X) x ${currentDesignData.compY} (Y)</li>
+                        <li><strong>Custom Text:</strong> "${currentDesignData.customText}" (${currentDesignData.font})</li>
+                        <li><strong>Date Created:</strong> ${new Date(currentDesignData.createdAt).toLocaleString()}</li>
                     `;
                     document.getElementById('result').style.display = "block";
                 } else {
@@ -87,25 +94,24 @@
         };
 
         window.downloadScad = function() {
-    const id = document.getElementById('designIdInput').value.trim().toUpperCase();
-    
-    // Clean custom text for safe filename (remove special characters)
-    const safeText = (currentData.customText || "BOX")
-        .replace(/[^a-zA-Z0-0\s_-]/g, '')
-        .trim() || "CUSTOM_BOX";
+            const id = document.getElementById('designIdInput').value.trim().toUpperCase();
+            if (!currentDesignData) return;
+        
+            const safeText = (currentDesignData.customText || "BOX")
+                .replace(/[^a-zA-Z0-9\s_-]/g, '')
+                .trim() || "CUSTOM_BOX";
 
-    // Format: "MY GAME_120x90x20_BOX-A8K2.scad"
-    const filename = `${safeText}_${currentData.width}x${currentData.length}x${currentData.height}_${id}.scad`;
+            const filename = `${safeText}_${currentDesignData.width}x${currentDesignData.length}x${currentDesignData.height}_${id}.scad`;
 
-    const blob = new Blob([currentScad], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-};
+            const blob = new Blob([currentScad], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
     </script>
 </body>
 </html>
