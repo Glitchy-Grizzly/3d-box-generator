@@ -400,15 +400,15 @@
 
         function createWedgeMesh(w, l, h, wall, mat) {
             const armW = Math.max(16.0, w / 4.0);
-            const w_span = (armW - 2 * wall) - 4.0;
-            const x_min = -w_span / 2, x_max = w_span / 2;
-            const y_wall = -l / 2, y_tip = -l / 2 - 1.15;
-            const z_top = h, z_bot_wall = h - 3.45, z_bot_tip = h - 3.30;
+            const c_span = armW - 0.4;
+            const x_min = -c_span / 2, x_max = c_span / 2;
+            const y_wall = -l / 2, y_tip = -l / 2 - 0.85;
+            const z_top = h - 0.2, z_bot_wall = h - 3.60, z_bot_tip = h - 2.75;
 
             const vertices = new Float32Array([
-                x_min, y_wall, z_top,       x_max, y_wall, z_top,
-                x_min, y_wall, z_bot_wall,  x_max, y_wall, z_bot_wall,
-                x_min, y_tip,  z_bot_tip,   x_max, y_tip,  z_bot_tip
+                x_min, y_wall, z_top,      x_max, y_wall, z_top,
+                x_min, y_wall, z_bot_wall, x_max, y_wall, z_bot_wall,
+                x_min, y_tip,  z_bot_tip,  x_max, y_tip,  z_bot_tip
             ]);
             const indices = [0,2,1, 1,2,3, 2,4,3, 3,4,5, 0,1,4, 1,5,4, 0,4,2, 1,3,5];
             const geo = new THREE.BufferGeometry();
@@ -499,24 +499,43 @@
             lidGroup.position.set(0, length / 2 + gap / 2, -height);
 
             const latchGroup = new THREE.Group();
-            const armW = Math.max(16.0, width / 4.0), armT = 1.8, armH = 5.8;
-            const strutL = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
-            strutL.position.set(-armW / 2 + wall / 2, 0, height + armH / 2 - 1.5);
-            latchGroup.add(strutL);
+            const armW = Math.max(16.0, width / 4.0), armT = 1.4, armH = 5.8;
 
-            const strutR = new THREE.Mesh(new THREE.BoxGeometry(wall, armT, armH + 3.0), material);
-            strutR.position.set(armW / 2 - wall / 2, 0, height + armH / 2 - 1.5);
-            latchGroup.add(strutR);
+            // 1. Solid continuous latch plate (no window!)
+            const plate = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, armH + 3.5), material);
+            plate.position.set(0, armT / 2, height + (armH - 3.5) / 2);
+            latchGroup.add(plate);
 
-            const cap = new THREE.Mesh(new THREE.BoxGeometry(armW, armT, 2.0), material);
-            cap.position.set(0, 0, height + armH - 1.0);
-            latchGroup.add(cap);
-
-            const tab = new THREE.Mesh(new THREE.BoxGeometry(armW * 0.7, 2.5, 1.8), material);
-            tab.position.set(0, 1.2, height + armH - 0.9);
+            // 2. Full-width finger pull tab at the top outside edge
+            const tab = new THREE.Mesh(new THREE.BoxGeometry(armW * 0.85, 1.8, 1.8), material);
+            tab.position.set(0, armT + 0.9, height + armH - 0.9);
             latchGroup.add(tab);
 
-            latchGroup.position.set(0, length / 2 + armT / 2, 0);
+            // 3. Inward-facing full-width locking tooth at tip
+            const toothVerts = new Float32Array([
+                -armW / 2, 0,     height + 3.65,  armW / 2, 0,     height + 3.65,
+                -armW / 2, -0.80, height + 4.45,  armW / 2, -0.80, height + 4.45,
+                -armW / 2, 0,     height + 5.80,  armW / 2, 0,     height + 5.80
+            ]);
+            const toothGeo = new THREE.BufferGeometry();
+            toothGeo.setAttribute('position', new THREE.BufferAttribute(toothVerts, 3));
+            toothGeo.setIndex([0,2,3, 0,3,1, 2,4,5, 2,5,3, 0,1,5, 0,5,4, 0,4,2, 1,3,5]);
+            toothGeo.computeVertexNormals();
+            latchGroup.add(new THREE.Mesh(toothGeo, material));
+
+            // 4. Full-width tapered root gusset
+            const gussetVerts = new Float32Array([
+                -armW / 2, 0,          height - 3.5,  armW / 2, 0,          height - 3.5,
+                -armW / 2, armT * 1.6, height - 3.5,  armW / 2, armT * 1.6, height - 3.5,
+                -armW / 2, armT,       height + 1.0,  armW / 2, armT,       height + 1.0
+            ]);
+            const gussetGeo = new THREE.BufferGeometry();
+            gussetGeo.setAttribute('position', new THREE.BufferAttribute(gussetVerts, 3));
+            gussetGeo.setIndex([0,1,3, 0,3,2, 2,3,5, 2,5,4, 0,4,5, 0,5,1, 0,2,4, 1,5,3]);
+            gussetGeo.computeVertexNormals();
+            latchGroup.add(new THREE.Mesh(gussetGeo, material));
+
+            latchGroup.position.set(0, length / 2, 0);
             lidGroup.add(latchGroup);
             lidPivot.add(lidGroup);
 
